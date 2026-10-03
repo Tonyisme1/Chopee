@@ -78,25 +78,25 @@
 **Interfaces:**
 - Produces: JPA entities (`User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `Voucher`, `Payment`, `Review`) and repositories.
 
-- [x] **Step 1: Write integration test for entity creation and relations**
+- [ ] **Step 1: Write integration test for entity creation and relations**
   Test creating a user with `ROLE_SELLER`, a shop, a category, and a product with `attributes` JSON.
 
-- [x] **Step 2: Implement Enums and Base Entities**
+- [ ] **Step 2: Implement Enums and Base Entities**
   Define `Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`.
 
-- [x] **Step 3: Implement User, Shop, Category, and Product Entities**
+- [ ] **Step 3: Implement User, Shop, Category, and Product Entities**
   Include fresh food fields: `unit`, `minOrderQuantity`, `stepQuantity`, `storageType`, `shelfLife`, `origin`, and JSON `attributes` string with converter.
 
-- [x] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment Entities**
+- [ ] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment Entities**
   Ensure `Order` contains `groupOrderCode`, `shop`, `user`, amounts, status, and shipping fields.
 
-- [x] **Step 5: Create Spring Data JPA Repositories**
+- [ ] **Step 5: Create Spring Data JPA Repositories**
   `UserRepository`, `ShopRepository`, `CategoryRepository`, `ProductRepository`, `CartItemRepository`, `OrderRepository`, `VoucherRepository`.
 
-- [x] **Step 6: Run tests to verify entity mappings**
+- [ ] **Step 6: Run tests to verify entity mappings**
   Run: `mvn test -Dtest=EntityMappingTest`. Expected: PASS.
 
-- [x] **Step 7: Commit**
+- [ ] **Step 7: Commit**
   `git add backend/ && git commit -m "feat: implement JPA entities and repositories for Chopee marketplace"`
 
 ---
@@ -116,23 +116,23 @@
 **Interfaces:**
 - Produces: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, `POST /api/v1/auth/register-seller`.
 
-- [ ] **Step 1: Write tests for authentication endpoints**
+- [x] **Step 1: Write tests for authentication endpoints**
   Test registration with valid & duplicate email, login with correct & invalid password, accessing protected `/me` with and without Bearer token.
 
-- [ ] **Step 2: Implement `JwtTokenProvider` & `JwtAuthenticationFilter`**
+- [x] **Step 2: Implement `JwtTokenProvider` & `JwtAuthenticationFilter`**
   Generate JWT tokens with claims (username, role, userId, shopId if seller), validate token expiration and HMAC signature.
 
-- [ ] **Step 3: Configure `SecurityConfig` with CORS & stateless session**
+- [x] **Step 3: Configure `SecurityConfig` with CORS & stateless session**
   Permit public paths: `/api/v1/auth/**`, `/api/v1/public/**`, `/swagger-ui/**`, `/v3/api-docs/**`.
   Require `ROLE_SELLER` for `/api/v1/seller/**`, `ROLE_ADMIN` for `/api/v1/admin/**`.
 
-- [ ] **Step 4: Implement `AuthService` and `AuthController`**
+- [x] **Step 4: Implement `AuthService` and `AuthController`**
   Implement BCrypt password hashing, authenticate user via `AuthenticationManager`, return `AuthResponse` containing token and user profile.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run: `mvn test -Dtest=AuthControllerTest`. Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git add backend/ && git commit -m "feat: implement Spring Security 6 stateless JWT authentication and RBAC"`
 
 ---

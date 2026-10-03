@@ -134,7 +134,6 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 * **Chi tiết Trước & Sau:**
   * *Trước:* Thư mục dự án chưa có mã nguồn backend và frontend, chưa có cấu hình container CSDL.
   * *Sau:* Cả backend (`mvn clean test` PASS 100%) và frontend (`npm run build` PASS) đều biên dịch thành công và kết nối thông suốt.
-* **Phạm vi tác động:** `docker-compose.yml`, `backend/`, `frontend/`, `docs/superpowers/plans/2026-10-03-chopee-marketplace-implementation.md`.
 ---
 
 ### 📌 [CHG-20261003-010] Triển khai Task 2: Core Data Model, 11 Enums, 13 JPA Entities & Repositories
@@ -143,7 +142,7 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 * **Loại thay đổi:** `ADDED`
 * **Phân hệ ảnh hưởng:** `DATABASE`, `BACKEND_API`, `CORE_MODEL`
 * **Mô tả thay đổi:** Xây dựng toàn bộ hệ thống thực thể dữ liệu (Data Access Layer) cho Chopee Marketplace:
-  1. 11 Enums nghiệp vụ (`Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`, `VoucherType`).
+  1. 11 Enums nghiệp vụ (`Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`, `DiscountType`).
   2. 13 JPA Entities: `User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `Voucher`, `Payment`, `Review` với các thuộc tính cho thực phẩm tươi sống (`unit`, `stepQuantity`, `minOrderQuantity`, `storageType`, `shelfLife`) và JSON specs `attributes`.
   3. 13 Spring Data JPA Repositories tương ứng, đặc biệt là `ProductRepository` với truy vấn nguyên tử chống overselling `@Modifying(clearAutomatically = true, flushAutomatically = true) deductStock(...)`.
   4. Bộ kiểm thử tích hợp `EntityMappingTest` với 5 ca kiểm thử thực tế (tạo User, Shop, Product tươi sống với JSON attributes, Order splitting theo nhóm shop `groupOrderCode`, và atomic stock deduction) đạt 100% PASS.
@@ -152,3 +151,29 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Trước:* Backend mới chỉ có khung cấu hình ban đầu, chưa có tầng Entity hay Repository.
   * *Sau:* Toàn bộ mô hình dữ liệu quan hệ được sinh chuẩn xác, hỗ trợ đầy đủ sàn đa người bán và thực phẩm tươi sống.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/entity/`, `backend/src/main/java/com/chopee/repository/`, `backend/src/test/java/com/chopee/repository/EntityMappingTest.java`.
+
+---
+
+### 📌 [CHG-20261003-011] Triển khai Task 3: Xác thực Người dùng, Bảo mật & Phân quyền RBAC (Spring Security 6 + JJWT)
+* **Ngày thực hiện:** 2026-10-03
+* **Người thực hiện:** Security Specialist & Backend Lead
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `SECURITY`, `AUTHENTICATION`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh phân hệ Xác thực và Phân quyền người dùng:
+  1. Cấu hình Spring Security 6 Stateless Session với `SecurityConfig`, tích hợp `JwtAuthenticationEntryPoint` trả về cấu trúc lỗi chuẩn JSON 401 `ApiResponse`.
+  2. Bộ sinh và xác thực mã bí mật `JwtTokenProvider` trên chuẩn bảo mật JJWT 0.12.x HMAC-SHA256, đóng gói claims `userId`, `username`, `email`, `role`, `fullName`, `shopId`.
+  3. Bộ lọc `JwtAuthenticationFilter` (OncePerRequestFilter) tự động trích xuất token Bearer từ header `Authorization`, xác thực và gán quyền vào `SecurityContextHolder`.
+  4. Dịch vụ người dùng `CustomUserDetailsService` và đối tượng `UserPrincipal` tải người dùng linh hoạt qua username hoặc email, hỗ trợ kiểm tra trạng thái khóa tài khoản (`BLOCKED`).
+  5. Các DTO yêu cầu & phản hồi: `RegisterRequest`, `LoginRequest`, `RegisterSellerRequest`, `UserProfileResponse`, `AuthResponse`.
+  6. Xử lý nghiệp vụ tại `AuthService` và bộ điều khiển REST `AuthController`:
+     - `POST /api/v1/auth/register`: Đăng ký tài khoản Người mua (`ROLE_BUYER`), mã hóa mật khẩu bằng BCrypt.
+     - `POST /api/v1/auth/login`: Đăng nhập bằng username hoặc email, cấp phát Token JWT.
+     - `GET /api/v1/auth/me`: Lấy thông tin tài khoản hiện tại từ token đang đăng nhập.
+     - `POST /api/v1/auth/register-seller`: Nâng cấp Người mua thành Người bán (`ROLE_SELLER`), khởi tạo Shop với slug chuẩn hóa tiếng Việt, sinh token mới mang quyền SELLER và `shopId`.
+  7. Bộ xử lý ngoại lệ toàn cục `GlobalExceptionHandler` bắt trọn các lỗi validation (400), BadCredentials (401), AccessDenied (403), ResponseStatusException, trả về format chuẩn hóa `ApiResponse<T>`.
+  8. Bộ kiểm thử tích hợp `AuthControllerTest` kiểm tra toàn bộ luồng Auth, 12/12 bài test hệ thống PASS 100%.
+* **Lý do thay đổi:** Hoàn thành Task 3 theo kế hoạch, cung cấp cơ chế bảo mật và phân quyền cho sàn thương mại điện tử đa người bán.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Các API mở tự do (`permitAll`), chưa có cơ chế cấp phát token JWT và phân quyền Buyer/Seller/Admin.
+  * *Sau:* Toàn bộ các endpoint được bảo vệ nghiêm ngặt bằng JWT và RBAC; có API cho phép người dùng đăng ký, đăng nhập và tự nâng cấp lên Seller.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/security/`, `backend/src/main/java/com/chopee/modules/auth/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/main/java/com/chopee/common/GlobalExceptionHandler.java`, `backend/src/test/java/com/chopee/modules/auth/AuthControllerTest.java`.
