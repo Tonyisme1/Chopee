@@ -90,3 +90,18 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Trước:* 1 file tài liệu duy nhất `2026-10-03-shopee-marketplace-design.md`.
   * *Sau:* Bộ tài liệu 8 file mô-đun trong thư mục `docs/specs/` kèm hệ thống đánh chỉ mục và liên kết chéo.
 * **Phạm vi tác động:** Thư mục `docs/specs/`.
+
+---
+
+### 📌 [CHG-20261003-006] Ban hành Quy chuẩn Phát triển Dự án & Luật Vận hành AI (Project Governance & Agent Rules)
+* **Ngày thực hiện:** 2026-10-03
+* **Người thực hiện:** Project Owner & Software Architect
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `DOCS`, `GOVERNANCE`
+* **Mô tả thay đổi:** Thiết lập và ban hành tập luật phát triển dự án [`PROJECT_RULES.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/PROJECT_RULES.md) và hướng dẫn bắt buộc cho AI Assistant [`AGENTS.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/AGENTS.md).
+* **Lý do thay đổi:** Đảm bảo mọi lập trình viên và trợ lý AI khi làm việc trên dự án phải tuân thủ nghiêm ngặt quy trình kiểm duyệt (Review Gates: `mvn test` & `npm run build` trước khi commit), nguyên tắc chống IDOR, bảo vệ tồn kho đồng thời và bắt buộc ghi nhận Change Key cho mọi thay đổi.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có văn bản quy định luật lệ phát triển và quy trình review cho người và agent.
+  * *Sau:* Ban hành `PROJECT_RULES.md` và `AGENTS.md`, ràng buộc quy trình Evidence-First và quản lý phiên bản tài liệu.
+* **Phạm vi tác động:** `PROJECT_RULES.md`, `AGENTS.md`, `docs/specs/00_index.md`, `docs/specs/07_changelog.md`.
+

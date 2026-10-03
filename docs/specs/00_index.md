@@ -24,7 +24,15 @@ Tài liệu đặc tả hệ thống được phân rã thành các tập tin ch
 
 ---
 
+## Quy Chuẩn Phát Triển & Luật Dự Án
+Bắt buộc đọc và tuân thủ các quy tắc kiểm duyệt trước khi viết code và commit:
+* 📜 [PROJECT_RULES.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/PROJECT_RULES.md): Quy định về Cổng kiểm duyệt pre-commit, kiểm tra IDOR, bảo vệ tồn kho và quy chuẩn đặt tên RESTful / React.
+* 🤖 [AGENTS.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/AGENTS.md): Luật vận hành bắt buộc dành cho AI Assistant và automated workflows.
+
+---
+
 ## Hướng dẫn cập nhật tài liệu
 Mỗi khi có bất kỳ thay đổi nào liên quan đến kiến trúc, cơ sở dữ liệu hoặc luồng nghiệp vụ:
 1. Cập nhật trực tiếp vào file tài liệu tương ứng (`01` đến `06`).
 2. Ghi nhận một bản ghi thay đổi mới vào file [07_changelog.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/docs/specs/07_changelog.md) kèm theo mã định danh `CHG-YYYYMMDD-XXX`.
+
