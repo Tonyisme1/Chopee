@@ -105,3 +105,18 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Ban hành `PROJECT_RULES.md` và `AGENTS.md`, ràng buộc quy trình Evidence-First và quản lý phiên bản tài liệu.
 * **Phạm vi tác động:** `PROJECT_RULES.md`, `AGENTS.md`, `docs/specs/00_index.md`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261003-007] Thiết lập Pipeline Tích hợp Liên tục (CI/CD) với GitHub Actions
+* **Ngày thực hiện:** 2026-10-03
+* **Người thực hiện:** DevOps & System Architect
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `CI_CD`, `BACKEND_API`, `FRONTEND_UI`
+* **Mô tả thay đổi:** Thiết lập tệp cấu hình quy trình CI/CD tự động [`.github/workflows/ci.yml`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/.github/workflows/ci.yml) với 2 jobs chạy song song: kiểm thử & đóng gói Backend (Java 17, Maven test & verify) và kiểm thử & build Frontend (Node 20, npm run build).
+* **Lý do thay đổi:** Tự động hóa kiểm duyệt chất lượng code mỗi khi có commit hoặc pull request vào nhánh `main`, bảo đảm quy tắc kiểm duyệt không bao giờ bị vi phạm trên GitHub.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Dự án chưa có quy trình kiểm thử và build tự động (CI/CD) trên repository.
+  * *Sau:* Mỗi lần push code lên `main`, GitHub Actions tự động dựng môi trường, cache dependencies và kiểm thử toàn bộ hệ thống.
+* **Phạm vi tác động:** `.github/workflows/ci.yml`, `PROJECT_RULES.md`, `docs/specs/07_changelog.md`.
+
+

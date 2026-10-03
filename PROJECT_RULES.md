@@ -56,6 +56,12 @@ Trước khi thực hiện `git commit`, bắt buộc phải thỏa mãn 3 đi�
 * **Kiểm tra Concurrency (Chống âm kho):** Thao tác trừ tồn kho phải dùng câu lệnh điều kiện `WHERE stock_quantity >= :qty` trong giao dịch `@Transactional`.
 * **Kiểm tra Checksum thanh toán:** API Webhook nhận thanh toán VNPay bắt buộc phải xác thực mã băm HMAC-SHA512 trước khi cập nhật trạng thái đơn thành `PAID`.
 
+### 2.3 Cổng kiểm duyệt tự động CI/CD (GitHub Actions Pipeline Gate)
+* Toàn bộ commit và Pull Request được tự động kiểm tra bởi GitHub Actions ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)):
+  * **Job 1 (Backend CI):** Khởi tạo môi trường JDK 17, kích hoạt cache Maven, chạy lệnh `mvn -B clean test`.
+  * **Job 2 (Frontend CI):** Khởi tạo môi trường Node.js 20, kích hoạt cache npm, chạy lệnh `npm ci && npm run build`.
+* **Quy tắc chặn hợp nhất (Branch Protection Rule):** Nếu bất kỳ job nào trong pipeline bị FAILED (đỏ), nhánh đó không được phép merge vào `main` cho đến khi lỗi được khắc phục hoàn toàn.
+
 ---
 
 ## 3. QUY CHUẨN LẬP TRÌNH & ĐẶT TÊN (CODING CONVENTIONS)
