@@ -78,25 +78,25 @@
 **Interfaces:**
 - Produces: JPA entities (`User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `Voucher`, `Payment`, `Review`) and repositories.
 
-- [ ] **Step 1: Write integration test for entity creation and relations**
+- [x] **Step 1: Write integration test for entity creation and relations**
   Test creating a user with `ROLE_SELLER`, a shop, a category, and a product with `attributes` JSON.
 
-- [ ] **Step 2: Implement Enums and Base Entities**
+- [x] **Step 2: Implement Enums and Base Entities**
   Define `Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`.
 
-- [ ] **Step 3: Implement User, Shop, Category, and Product Entities**
+- [x] **Step 3: Implement User, Shop, Category, and Product Entities**
   Include fresh food fields: `unit`, `minOrderQuantity`, `stepQuantity`, `storageType`, `shelfLife`, `origin`, and JSON `attributes` string with converter.
 
-- [ ] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment Entities**
+- [x] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment Entities**
   Ensure `Order` contains `groupOrderCode`, `shop`, `user`, amounts, status, and shipping fields.
 
-- [ ] **Step 5: Create Spring Data JPA Repositories**
+- [x] **Step 5: Create Spring Data JPA Repositories**
   `UserRepository`, `ShopRepository`, `CategoryRepository`, `ProductRepository`, `CartItemRepository`, `OrderRepository`, `VoucherRepository`.
 
-- [ ] **Step 6: Run tests to verify entity mappings**
+- [x] **Step 6: Run tests to verify entity mappings**
   Run: `mvn test -Dtest=EntityMappingTest`. Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
   `git add backend/ && git commit -m "feat: implement JPA entities and repositories for Chopee marketplace"`
 
 ---

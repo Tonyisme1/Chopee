@@ -135,6 +135,20 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Trước:* Thư mục dự án chưa có mã nguồn backend và frontend, chưa có cấu hình container CSDL.
   * *Sau:* Cả backend (`mvn clean test` PASS 100%) và frontend (`npm run build` PASS) đều biên dịch thành công và kết nối thông suốt.
 * **Phạm vi tác động:** `docker-compose.yml`, `backend/`, `frontend/`, `docs/superpowers/plans/2026-10-03-chopee-marketplace-implementation.md`.
+---
 
-
-
+### 📌 [CHG-20261003-010] Triển khai Task 2: Core Data Model, 11 Enums, 13 JPA Entities & Repositories
+* **Ngày thực hiện:** 2026-10-03
+* **Người thực hiện:** Fullstack Architect & Lead Developer
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `BACKEND_API`, `CORE_MODEL`
+* **Mô tả thay đổi:** Xây dựng toàn bộ hệ thống thực thể dữ liệu (Data Access Layer) cho Chopee Marketplace:
+  1. 11 Enums nghiệp vụ (`Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`, `VoucherType`).
+  2. 13 JPA Entities: `User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `Voucher`, `Payment`, `Review` với các thuộc tính cho thực phẩm tươi sống (`unit`, `stepQuantity`, `minOrderQuantity`, `storageType`, `shelfLife`) và JSON specs `attributes`.
+  3. 13 Spring Data JPA Repositories tương ứng, đặc biệt là `ProductRepository` với truy vấn nguyên tử chống overselling `@Modifying(clearAutomatically = true, flushAutomatically = true) deductStock(...)`.
+  4. Bộ kiểm thử tích hợp `EntityMappingTest` với 5 ca kiểm thử thực tế (tạo User, Shop, Product tươi sống với JSON attributes, Order splitting theo nhóm shop `groupOrderCode`, và atomic stock deduction) đạt 100% PASS.
+* **Lý do thay đổi:** Hoàn thành toàn diện Task 2 theo kế hoạch, chuẩn bị cơ sở dữ liệu vững chắc cho Authentication và Catalog APIs.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Backend mới chỉ có khung cấu hình ban đầu, chưa có tầng Entity hay Repository.
+  * *Sau:* Toàn bộ mô hình dữ liệu quan hệ được sinh chuẩn xác, hỗ trợ đầy đủ sàn đa người bán và thực phẩm tươi sống.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/entity/`, `backend/src/main/java/com/chopee/repository/`, `backend/src/test/java/com/chopee/repository/EntityMappingTest.java`.
