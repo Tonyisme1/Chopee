@@ -121,17 +121,20 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 
 ---
 
-### 📌 [CHG-20261003-008] Bổ sung Quy tắc Kiểm tra Debug & Xác minh Triệt để Trước khi Dừng (Pre-Stop Verification & Sanity Gate)
+### 📌 [CHG-20261003-009] Triển khai Task 1: Khởi tạo Kiến trúc Khung Monorepo (Spring Boot 3 + React + Docker MySQL)
 * **Ngày thực hiện:** 2026-10-03
-* **Người thực hiện:** Technical Lead & Quality Assurance
+* **Người thực hiện:** Fullstack Architect & Lead Developer
 * **Loại thay đổi:** `ADDED`
-* **Phân hệ ảnh hưởng:** `GOVERNANCE`, `DOCS`
-* **Mô tả thay đổi:** Bổ sung quy định mục `2.4` trong [`PROJECT_RULES.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/PROJECT_RULES.md) và Điều `6` trong [`AGENTS.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/AGENTS.md) yêu cầu bắt buộc phải kiểm tra log terminal, rà soát ngoại lệ ẩn (zero unhandled errors) và chạy lại các lệnh xác minh trước khi dừng hoặc tuyên bố hoàn thành bất kỳ nhiệm vụ nào.
-* **Lý do thay đổi:** Ngăn ngừa việc bàn giao code khi còn lỗi tiềm ẩn, bảo đảm chất lượng phần mềm đạt độ tin cậy cao nhất.
+* **Phân hệ ảnh hưởng:** `ARCHITECTURE`, `BACKEND_API`, `FRONTEND_UI`, `DATABASE`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh bộ khung mã nguồn Monorepo gồm:
+  1. `docker-compose.yml`: Khởi tạo dịch vụ MySQL 8.0 (`shopee_db`) và phpMyAdmin cổng 8081.
+  2. `backend/`: Dự án Spring Boot 3.3.4 (Java 17, Maven, JPA, Security 6, JJWT 0.12.6, Springdoc OpenAPI 2.6.0, H2 test, `ApiResponse<T>`, `HealthController`).
+  3. `frontend/`: Dự án React 18 (Vite, TypeScript, Tailwind CSS cấu hình màu cam Shopee `#EE4D2D`, Lucide Icons, Axios, Zustand, giao diện `App.tsx` kiểm tra kết nối API).
+* **Lý do thay đổi:** Hoàn thành Task 1 theo Kế hoạch triển khai, tạo nền tảng vững chắc để phát triển các module CSDL và nghiệp vụ.
 * **Chi tiết Trước & Sau:**
-  * *Trước:* Chỉ có cổng kiểm duyệt khi chuẩn bị commit (`mvn test` & `npm run build`).
-  * *Sau:* Bổ sung cổng rà soát debug bắt buộc tại mọi điểm dừng (Pre-Stop Gate) và bắt buộc debug có hệ thống đến tận gốc rễ (root cause) khi gặp lỗi.
-* **Phạm vi tác động:** `PROJECT_RULES.md`, `AGENTS.md`, `docs/specs/07_changelog.md`.
+  * *Trước:* Thư mục dự án chưa có mã nguồn backend và frontend, chưa có cấu hình container CSDL.
+  * *Sau:* Cả backend (`mvn clean test` PASS 100%) và frontend (`npm run build` PASS) đều biên dịch thành công và kết nối thông suốt.
+* **Phạm vi tác động:** `docker-compose.yml`, `backend/`, `frontend/`, `docs/superpowers/plans/2026-10-03-chopee-marketplace-implementation.md`.
 
 
 

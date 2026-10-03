@@ -47,25 +47,26 @@
 **Interfaces:**
 - Produces: Base running backend on `:8080` with Swagger UI at `/swagger-ui.html` and frontend on `:5173`.
 
-- [ ] **Step 1: Create `docker-compose.yml` for local MySQL 8**
+- [x] **Step 1: Create `docker-compose.yml` for local MySQL 8**
   Define `mysql` service on port 3306 with database `shopee_db`, username `root`, password `root`, and persistent volume.
 
-- [ ] **Step 2: Scaffold Spring Boot 3 Maven project in `backend/`**
+- [x] **Step 2: Scaffold Spring Boot 3 Maven project in `backend/`**
   Add dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-validation`, `mysql-connector-j`, `jjwt-api`, `jjwt-impl`, `jjwt-jackson`, `lombok`, `springdoc-openapi-starter-webmvc-ui`.
   Configure `application.yml` with datasource, JPA ddl-auto `update`, and port `8080`.
 
-- [ ] **Step 3: Scaffold React + Vite + Tailwind CSS project in `frontend/`**
+- [x] **Step 3: Scaffold React + Vite + Tailwind CSS project in `frontend/`**
   Install dependencies: `react`, `react-dom`, `react-router-dom`, `lucide-react`, `zustand`, `axios`, `clsx`, `tailwind-merge`.
   Configure Tailwind theme with primary orange color `#EE4D2D`.
 
-- [ ] **Step 4: Verify Backend & Frontend build and startup**
+- [x] **Step 4: Verify Backend & Frontend build and startup**
   Run: `mvn clean test` in `backend/` and `npm run build` in `frontend/`.
   Expected: BUILD SUCCESS for both.
 
-- [ ] **Step 5: Commit scaffolding**
+- [x] **Step 5: Commit scaffolding**
   `git add . && git commit -m "chore: scaffold Spring Boot 3 backend and React Vite Tailwind frontend"`
 
 ---
+
 
 ### Task 2: Core Data Model & JPA Entity Layer
 
