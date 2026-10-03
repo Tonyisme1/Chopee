@@ -62,6 +62,13 @@ Trước khi thực hiện `git commit`, bắt buộc phải thỏa mãn 3 đi�
   * **Job 2 (Frontend CI):** Khởi tạo môi trường Node.js 20, kích hoạt cache npm, chạy lệnh `npm ci && npm run build`.
 * **Quy tắc chặn hợp nhất (Branch Protection Rule):** Nếu bất kỳ job nào trong pipeline bị FAILED (đỏ), nhánh đó không được phép merge vào `main` cho đến khi lỗi được khắc phục hoàn toàn.
 
+### 2.4 Kiểm tra Debug & Xác minh Triệt để Trước khi Dừng (Pre-Stop Verification & Sanity Gate)
+* **Luật bắt buộc trước khi kết thúc một nhiệm vụ (Task) hoặc dừng phiên làm việc:**
+  1. **Rà soát Log & Output (Zero Unhandled Errors):** Phải kiểm tra log terminal, log runtime ứng dụng để đảm bảo không có ngoại lệ tiềm ẩn (silent exceptions, stack traces, warning đỏ, memory leak).
+  2. **Thực thi Kiểm thử Xác minh:** Phải chạy lại lệnh kiểm thử trực tiếp (`mvn test` hoặc lệnh tương ứng) và đọc kết quả thực tế.
+  3. **Không phỏng đoán khi phát sinh lỗi:** Nếu xuất hiện lỗi/bug, bắt buộc phải debug có hệ thống (tìm nguyên nhân gốc rễ - root cause) và sửa dứt điểm, không được dừng lại nửa chừng hoặc phớt lờ lỗi.
+  4. **Báo cáo rõ ràng trạng thái kiểm tra:** Khi thông báo kết thúc nhiệm vụ, phải liệt kê minh chứng đã debug và kiểm tra những gì.
+
 ---
 
 ## 3. QUY CHUẨN LẬP TRÌNH & ĐẶT TÊN (CODING CONVENTIONS)

@@ -23,3 +23,8 @@ This file defines mandatory instructions for any AI assistant, agent, or automat
 
 5. **Test-Driven & Evidence-First:**
    - Never claim a task or test is completed without executing the test command and inspecting the real output.
+
+6. **Mandatory Debug & Sanity Check Before Stopping:**
+   - Before completing a task, yielding, or stopping, you MUST inspect runtime logs, console outputs, and test results for hidden warnings, uncaught errors, or regressions.
+   - If an issue or bug is detected, systematically debug to the root cause and fix it before reporting completion. Never leave unresolved errors or silent failures behind.
+

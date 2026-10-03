@@ -119,4 +119,19 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Mỗi lần push code lên `main`, GitHub Actions tự động dựng môi trường, cache dependencies và kiểm thử toàn bộ hệ thống.
 * **Phạm vi tác động:** `.github/workflows/ci.yml`, `PROJECT_RULES.md`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261003-008] Bổ sung Quy tắc Kiểm tra Debug & Xác minh Triệt để Trước khi Dừng (Pre-Stop Verification & Sanity Gate)
+* **Ngày thực hiện:** 2026-10-03
+* **Người thực hiện:** Technical Lead & Quality Assurance
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `GOVERNANCE`, `DOCS`
+* **Mô tả thay đổi:** Bổ sung quy định mục `2.4` trong [`PROJECT_RULES.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/PROJECT_RULES.md) và Điều `6` trong [`AGENTS.md`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/AGENTS.md) yêu cầu bắt buộc phải kiểm tra log terminal, rà soát ngoại lệ ẩn (zero unhandled errors) và chạy lại các lệnh xác minh trước khi dừng hoặc tuyên bố hoàn thành bất kỳ nhiệm vụ nào.
+* **Lý do thay đổi:** Ngăn ngừa việc bàn giao code khi còn lỗi tiềm ẩn, bảo đảm chất lượng phần mềm đạt độ tin cậy cao nhất.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chỉ có cổng kiểm duyệt khi chuẩn bị commit (`mvn test` & `npm run build`).
+  * *Sau:* Bổ sung cổng rà soát debug bắt buộc tại mọi điểm dừng (Pre-Stop Gate) và bắt buộc debug có hệ thống đến tận gốc rễ (root cause) khi gặp lỗi.
+* **Phạm vi tác động:** `PROJECT_RULES.md`, `AGENTS.md`, `docs/specs/07_changelog.md`.
+
+
 
