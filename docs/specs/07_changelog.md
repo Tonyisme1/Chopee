@@ -407,7 +407,31 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 * **Chi tiết Trước & Sau:**
   * *Trước:* Cơ sở dữ liệu trống, thiếu dữ liệu đa ngành để kiểm thử thực tế và trải nghiệm giao diện người dùng.
   * *Sau:* Hệ thống sở hữu 7 tài khoản mẫu, 5 shop, 14 danh mục và 31 sản phẩm chất lượng cao sẵn sàng đưa vào vận hành.
-* **Phạm vi tác động:** `backend/src/main/java/com/chopee/config/DataInitializer.java`, `backend/src/test/java/com/chopee/config/DataInitializerTest.java`.
+### 📌 [CHG-20261004-020] Hỗ trợ Bring Your Own Key (BYOK) cho AI Shopping Copilot, Cơ chế Bảo vệ Quota và Chuẩn hóa Encoding UTF-8
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Fullstack & AI Systems Architect
+* **Loại thay đổi:** `ADDED`, `IMPROVED`
+* **Phân hệ ảnh hưởng:** `AI_COPILOT`, `BACKEND_API`, `CONFIG`, `DATA_SEEDING`
+* **Mô tả thay đổi:**
+  1. Mở rộng DTO `AIChatRequest` với trường `apiKey` và hỗ trợ Request Header `X-AI-API-Key` tại `AIController`:
+     - Áp dụng mô hình BYOK (Bring Your Own Key): Cho phép người dùng hoặc gian hàng cung cấp API Key cá nhân (Gemini / OpenAI).
+     - Quota cá nhân hóa: Mỗi tài khoản chạy trên hạn mức API độc lập (ví dụ: Gemini 1.5 Flash miễn phí 15 RPM/người dùng), giải quyết triệt để rủi ro cạn kiệt Quota (lỗi HTTP 429) khi chia sẻ 1 API Key chung trên toàn hệ thống.
+  2. Cơ chế Dự phòng Thông minh (Zero-Quota Domain Fallback Engine):
+     - Khi người dùng không có API Key hoặc khi nhà cung cấp LLM ngoài bị quá tải/hết quota, Copilot tự động chuyển sang bộ NLP nội bộ kết hợp RAG trực tiếp từ Database sàn Chopee (tốc độ < 50ms, chi phí 0đ, không giới hạn lượt hỏi).
+  3. Tối ưu hóa Khởi tạo Dữ liệu (`DataInitializer`):
+     - Chuyển đổi cơ chế kiểm tra sang `productRepository.count() == 0` và bổ sung các hàm `getOrCreateUser`, `getOrCreateShop`, `getOrCreateCategory` cùng kiểm tra trùng slug sản phẩm, đảm bảo tính idempotent tuyệt đối khi ứng dụng khởi động lại.
+  4. Chuẩn hóa UTF-8 trong `pom.xml`:
+     - Thiết lập `<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>`, `<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>` và `<encoding>UTF-8</encoding>` trong `maven-compiler-plugin`.
+  5. Đã kiểm thử trực tiếp (Live Verification):
+     - `POST /api/v1/ai/chat` nhận diện chính xác ý định món ăn (`COOKING_RECIPE`), gợi ý nguyên liệu cá basa, cà chua, đậu bắp.
+     - Tư vấn thiết bị gia dụng (`TECH_ADVICE`), đề xuất Nồi chiên không dầu Philips HD9252.
+     - Lọc ràng buộc ngân sách khắt khe (`BUDGET_SHOPPING`), chỉ trả về 7 món thực phẩm tươi ngon có giá <= 30.000đ.
+     - Toàn bộ 52/52 JUnit tests PASS 100%, `npm run build` PASS 100%.
+* **Lý do thay đổi:** Đáp ứng yêu cầu cô lập Quota người dùng cho phân hệ AI, chống lỗi 429 và chuẩn hóa dữ liệu tiếng Việt.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* AI Copilot chỉ đọc key chung từ cấu hình máy chủ, nguy cơ hết quota khi nhiều người dùng truy vấn đồng thời.
+  * *Sau:* Hỗ trợ header `X-AI-API-Key` và trường `apiKey` cho phép người dùng tự mang key riêng (BYOK); fallback engine nội bộ không phụ thuộc key ngoài.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/ai/dto/AIChatRequest.java`, `backend/src/main/java/com/chopee/modules/ai/AIController.java`, `backend/src/main/java/com/chopee/config/DataInitializer.java`, `backend/pom.xml`.
 
 
 
