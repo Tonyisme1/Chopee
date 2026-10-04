@@ -209,24 +209,24 @@
 **Interfaces:**
 - Produces: `POST /api/v1/buyer/orders/checkout-preview`, `POST /api/v1/buyer/orders`, `GET /api/v1/buyer/orders`, `GET /api/v1/buyer/orders/{orderCode}`, `PUT /api/v1/buyer/orders/{orderCode}/cancel`.
 
-- [ ] **Step 1: Write integration tests for multi-shop order splitting and stock deduction**
+- [x] **Step 1: Write integration tests for multi-shop order splitting and stock deduction**
   Test ordering items from Shop 1 and Shop 2 in a single checkout, verify 2 `Order` records created with matching `groupOrderCode`.
   Test overselling scenario: verify transaction rollbacks and throws `InsufficientStockException`.
 
-- [ ] **Step 2: Implement Checkout Preview calculation**
+- [x] **Step 2: Implement Checkout Preview calculation**
   Calculate individual shipping fees (`STANDARD` vs `EXPRESS_FRESH`), apply shop vouchers and platform discounts, return breakdown.
 
-- [ ] **Step 3: Implement `@Transactional` Order Creation with Atomic Stock Deduction**
+- [x] **Step 3: Implement `@Transactional` Order Creation with Atomic Stock Deduction**
   Execute `productRepository.deductStock(productId, quantity)`.
   Create sub-orders per shop with unique `orderCode` (e.g. `ORD-YYYYMMDD-XXXX`), create `order_items`, clear ordered items from user's cart.
 
-- [ ] **Step 4: Implement order cancellation with stock restitution**
+- [x] **Step 4: Implement order cancellation with stock restitution**
   Allow buyer to cancel if `status == PENDING`, re-increment `stock_quantity += quantity`.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run: `mvn test -Dtest=OrderSplittingTest`. Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git add backend/ && git commit -m "feat: implement atomic multi-vendor order splitting and concurrency stock deduction"`
 
 ---

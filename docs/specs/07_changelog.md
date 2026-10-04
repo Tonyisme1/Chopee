@@ -251,5 +251,36 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Có hệ thống giỏ hàng hoàn chỉnh, tự động tách nhóm theo shop và tính toán giá trị chuẩn xác.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/cart/`, `backend/src/main/java/com/chopee/repository/CartItemRepository.java`, `backend/src/test/java/com/chopee/modules/cart/`.
 
+---
+
+### 📌 [CHG-20261004-015] Triển khai Task 6: Tách Đơn Hàng Đa Cửa Hàng & Trừ Tồn Kho Nguyên Tử (Multi-Vendor Order Splitting & Atomic Stock Deduction)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Backend Architect & Lead Developer
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `ORDER`, `INVENTORY`, `MULTI_VENDOR`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh phân hệ Đặt hàng, Tách đơn đa Shop và Quản lý Tồn kho nguyên tử:
+  1. Các DTO chuẩn hóa: `CheckoutPreviewRequest`, `OrderItemPreview`, `ShopCheckoutPreview`, `CheckoutPreviewResponse`, `CreateOrderRequest`, `OrderItemResponse`, `OrderResponse`, `CheckoutResultResponse`.
+  2. Xử lý nghiệp vụ tại `OrderService`:
+     - **Xem trước thanh toán (`previewCheckout`)**: Tính toán chi tiết phí ship và tiền hàng theo từng Shop riêng biệt (ví dụ: giao nhanh tươi sống `EXPRESS_FRESH` tính 25.000đ/shop, chuẩn `STANDARD` 15.000đ/shop).
+     - **Tự động tách đơn hàng (Multi-Vendor Order Splitting)**: Khi người mua checkout giỏ hàng có sản phẩm từ N shop, hệ thống tự động sinh ra N đơn hàng độc lập (`orders`) tương ứng với từng shop để đảm bảo cô lập dữ liệu người bán, đồng thời gắn chung mã gom nhóm `groupOrderCode` (`GRP-...`) để người mua quản lý tổng thể.
+     - **Trừ tồn kho nguyên tử & Chống overselling (Atomic Stock Deduction)**: Áp dụng `@Modifying deductStock` với điều kiện `stockQuantity >= qty`. Chạy trong giao dịch `@Transactional(rollbackFor = Exception.class)`. Nếu bất kỳ mặt hàng nào của bất kỳ shop nào không đủ tồn kho, toàn bộ giao dịch sẽ tự động Rollback hoàn toàn (không có đơn hàng nào được tạo, tồn kho các shop khác được hoàn nguyên).
+     - **Dọn dẹp giỏ hàng**: Tự động xóa các mặt hàng đã đặt thành công khỏi giỏ hàng của người mua.
+     - **Hủy đơn hàng & Hoàn trả tồn kho (`cancelOrder`)**: Chỉ cho phép hủy khi đơn ở trạng thái `PENDING`. Tự động hoàn lại số lượng tồn kho nguyên tử (`restoreStock`) cho tất cả sản phẩm trong đơn.
+     - **Bảo mật IDOR**: Mọi thao tác truy vấn và hủy đơn đều kiểm tra chặt chẽ quyền sở hữu của `userId` thông qua `orderRepository.findByOrderCodeAndUserId(...)`.
+  3. Bộ điều khiển REST `OrderController` tại `/api/v1/buyer/orders`:
+     - `POST /api/v1/buyer/orders/checkout-preview`: Tính trước phí ship, tiền hàng và tổng thanh toán.
+     - `POST /api/v1/buyer/orders`: Thực hiện đặt hàng và tách đơn.
+     - `GET /api/v1/buyer/orders`: Danh sách đơn hàng phân trang theo trạng thái của người mua.
+     - `GET /api/v1/buyer/orders/{orderCode}`: Chi tiết một đơn hàng cụ thể.
+     - `GET /api/v1/buyer/orders/group/{groupOrderCode}`: Danh sách các đơn hàng con trong cùng lượt thanh toán.
+     - `PUT /api/v1/buyer/orders/{orderCode}/cancel`: Hủy đơn hàng đang chờ xác nhận.
+  4. Bộ kiểm thử tích hợp: `OrderSplittingTest` (5 tests) đạt 100% PASS (Toàn bộ 34/34 backend tests đạt 100% PASS, `npm run build` frontend đạt 100% PASS).
+* **Lý do thay đổi:** Hoàn thành Task 6 theo kế hoạch triển khai, đảm bảo tính toàn vẹn đa người bán và tính nhất quán ACID của tồn kho khi thanh toán.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có quy trình đặt hàng, chưa tách đơn theo từng shop và chưa có cơ chế trừ tồn kho chống overselling.
+  * *Sau:* Hệ thống đặt hàng hoàn chỉnh, tự động tách đơn theo từng gian hàng, đảm bảo tính nguyên tử ACID tuyệt đối và bảo mật chống IDOR.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/order/`, `backend/src/main/java/com/chopee/repository/OrderRepository.java`, `backend/src/main/java/com/chopee/repository/ProductRepository.java`, `backend/src/test/java/com/chopee/modules/order/OrderSplittingTest.java`.
+
+
 
 
