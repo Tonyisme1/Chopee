@@ -305,23 +305,23 @@
 **Interfaces:**
 - Produces: `POST /api/v1/ai/chat` (receives query, queries DB for matching products, prompts LLM, returns structured JSON response with text and product cards).
 
-- [ ] **Step 1: Write unit tests for context enrichment & response formatting**
+- [x] **Step 1: Write unit tests for context enrichment & response formatting**
   Verify that when user asks for "nấu canh chua", the service queries fresh vegetables and fish, and embeds them into the response payload.
 
-- [ ] **Step 2: Implement Intent Recognition & Context Enrichment**
+- [x] **Step 2: Implement Intent Recognition & Context Enrichment**
   Parse keywords from user message (e.g. food ingredients, electronics specs, budget numbers).
   Query MySQL for top 5-8 matching in-stock products.
 
-- [ ] **Step 3: Implement LLM Prompt & Client**
+- [x] **Step 3: Implement LLM Prompt & Client**
   Format system prompt instructing the model to act as an all-in-one shopping advisor and output structured recommendations.
 
-- [ ] **Step 4: Implement `AIController`**
+- [x] **Step 4: Implement `AIController`**
   Expose `POST /api/v1/ai/chat`.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run: `mvn test -Dtest=AIServiceTest`. Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git add backend/ && git commit -m "feat: implement AI Shopping Copilot backend service with context enrichment"`
 
 ---

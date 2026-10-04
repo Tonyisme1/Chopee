@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/api/v1/payment/vnpay/ipn",
                                 "/api/v1/payment/vnpay/callback",
                                 "/api/v1/health",
+                                "/api/v1/ai/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"

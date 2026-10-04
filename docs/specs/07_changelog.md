@@ -341,6 +341,40 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống Seller Center và Admin Portal hoàn chỉnh, bảo mật chống IDOR tuyệt đối, kiểm soát chặt chẽ luồng đơn hàng và vận hành gian hàng.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/seller/`, `backend/src/main/java/com/chopee/modules/admin/`, `backend/src/main/java/com/chopee/repository/`, `backend/src/test/java/com/chopee/modules/seller/`.
 
+---
+
+### 📌 [CHG-20261004-018] Triển khai Task 9: Trợ Lý Mua Sắm Toàn Năng Chopee (AI Shopping Copilot Backend Service with RAG & Context Enrichment)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** AI & Backend Architect
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `AI_COPILOT`, `BACKEND_API`, `RAG_CONTEXT_ENRICHMENT`, `PRODUCT_CATALOG`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh backend service Trợ Lý Mua Sắm AI (AI Shopping Copilot) tích hợp RAG:
+  1. DTOs phân hệ AI Copilot (`AIChatRequest`, `AIChatResponse`, `ChatMessageDTO`):
+     - Tiếp nhận tin nhắn người dùng (`message`), lịch sử hội thoại nhiều lượt (`history`), và ngân sách tối đa (`maxBudget`).
+     - Trả về câu trả lời định dạng Markdown (`reply`), ý định được phân loại (`intent`), danh sách thẻ sản phẩm thực tế từ Database (`recommendedProducts` dạng `ProductSummaryResponse`), và 3 câu hỏi gợi ý tiếp theo (`suggestedQuestions`).
+  2. Động cơ Nhận diện Ý định & Làm giàu Ngữ cảnh (`AIShoppingCopilotService`):
+     - Nhận diện ý định thông minh: `COOKING_RECIPE` (ẩm thực / nấu ăn), `TECH_ADVICE` (gia dụng / công nghệ), `BUDGET_SHOPPING` (săn deal / tối ưu ngân sách), và `GENERAL_ASSISTANT` (chào hỏi / khám phá).
+     - Ánh xạ món ăn đặc trưng Việt Nam sang từ khóa nguyên liệu tươi sống thực tế (ví dụ: `canh chua` -> `cá`, `cà chua`, `đậu bắp`, `thơm/dứa`, `bạc hà`, `giá`...).
+     - Tự động trích xuất ngân sách qua Regex (ví dụ: `dưới 30k`, `ngân sách 500k`, `tầm 1 triệu`...).
+     - Truy vấn RAG (Retrieval-Augmented Generation) trực tiếp từ MySQL: Tìm kiếm sản phẩm tồn kho (`status = ACTIVE`, `stockQuantity > 0`), lọc nghiêm ngặt theo trần ngân sách (`sellingPrice <= budget`), loại bỏ trùng lặp và giới hạn 6-8 sản phẩm phù hợp nhất.
+     - Sinh nội dung tư vấn chuyên sâu theo miền nghiệp vụ bằng tiếng Việt tự nhiên kèm chỉ dẫn sử dụng nút "Thêm vào giỏ hàng" trực tiếp trên khung chat.
+     - Sinh 3 câu hỏi gợi ý tương tác theo ngữ cảnh giúp người dùng tiếp tục khám phá sàn.
+  3. REST Controller `AIController` tại `POST /api/v1/ai/chat`:
+     - Phục vụ API công khai (được cấu hình `permitAll()` trong `SecurityConfig`) để cả khách vãng lai và người mua đã đăng nhập đều có thể trò chuyện với AI Shopping Copilot.
+  4. Bộ kiểm thử tích hợp & nghiệp vụ `AIServiceTest` gồm 5 bài kiểm thử toàn diện đạt 100% PASS:
+     - Nhận diện ý định nấu ăn canh chua và gắn thẻ nguyên liệu tươi sống (cá, cà chua, đậu bắp).
+     - Tư vấn thiết bị công nghệ gia dụng (nồi chiên không dầu).
+     - Lọc ràng buộc ngân sách khắt khe (chỉ trả về món <= 30k, loại trừ thịt bò Wagyu tiền triệu).
+     - Dự phòng chào hỏi chung với câu hỏi gợi ý tương tác.
+     - Endpoint REST `POST /api/v1/ai/chat` trả về HTTP 200 OK với cấu trúc ApiResponse chuẩn.
+     - Tổng cộng 51/51 tests backend đạt 100% PASS, `npm run build` frontend đạt 100% PASS.
+* **Lý do thay đổi:** Hoàn thành Task 9 theo kế hoạch triển khai, tạo tính năng đột phá (killer feature) AI Copilot cho sàn TMĐT Chopee.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có backend service AI, hệ thống chỉ hỗ trợ tìm kiếm từ khóa SQL truyền thống.
+  * *Sau:* Hệ thống AI Copilot hoàn chỉnh kết hợp RAG với cơ sở dữ liệu thực, tự động đề xuất nguyên liệu tươi sống, đồ gia dụng và thẻ sản phẩm mua ngay trong chat.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/ai/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/test/java/com/chopee/modules/ai/AIServiceTest.java`.
+
+
 
 
 
