@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/public/**",
+                                "/api/v1/payment/vnpay/ipn",
+                                "/api/v1/payment/vnpay/callback",
                                 "/api/v1/health",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -59,7 +61,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/buyer/**").hasAnyRole("BUYER", "SELLER", "ADMIN")
+                        .requestMatchers("/api/v1/buyer/**", "/api/v1/payment/**").hasAnyRole("BUYER", "SELLER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -243,22 +243,22 @@
 **Interfaces:**
 - Produces: `POST /api/v1/payment/vnpay/create-payment`, `GET /api/v1/payment/vnpay/ipn`, `GET /api/v1/payment/vnpay/callback`.
 
-- [ ] **Step 1: Write unit tests for VNPay checksum HMAC-SHA512**
+- [x] **Step 1: Write unit tests for VNPay checksum HMAC-SHA512**
   Verify correct hash generation, parameter sorting, and validation logic.
 
-- [ ] **Step 2: Implement VNPay URL Builder & Hash generator**
+- [x] **Step 2: Implement VNPay URL Builder & Hash generator**
   Use test credentials (`vnp_TmnCode`, `vnp_HashSecret`, sandbox URL `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`).
 
-- [ ] **Step 3: Implement IPN Webhook handler**
+- [x] **Step 3: Implement IPN Webhook handler**
   Verify signature, check order status, update `payment_status = 'PAID'` for all orders sharing `groupOrderCode` if `vnp_ResponseCode == "00"`.
 
-- [ ] **Step 4: Implement Return URL callback handler**
+- [x] **Step 4: Implement Return URL callback handler**
   Redirect or return status response for client display.
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run: `mvn test -Dtest=VNPayPaymentTest`. Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git add backend/ && git commit -m "feat: implement VNPay sandbox payment gateway with HMAC-SHA512 IPN webhook"`
 
 ---
