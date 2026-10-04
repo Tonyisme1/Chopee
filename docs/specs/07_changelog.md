@@ -281,6 +281,36 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống đặt hàng hoàn chỉnh, tự động tách đơn theo từng gian hàng, đảm bảo tính nguyên tử ACID tuyệt đối và bảo mật chống IDOR.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/order/`, `backend/src/main/java/com/chopee/repository/OrderRepository.java`, `backend/src/main/java/com/chopee/repository/ProductRepository.java`, `backend/src/test/java/com/chopee/modules/order/OrderSplittingTest.java`.
 
+---
+
+### 📌 [CHG-20261004-016] Triển khai Task 7: Cổng Thanh toán Trực tuyến (Payment Gateway - VNPay Sandbox QR & IPN Webhook)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Backend Architect & Lead Developer
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `PAYMENT`, `SECURITY`, `WEBHOOK`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh tích hợp Cổng thanh toán trực tuyến VNPay Sandbox cho Chopee:
+  1. Cấu hình bảo mật và môi trường `VNPayConfig`: Thiết lập các thông số kết nối sandbox (`payUrl`, `returnUrl`, `tmnCode`, `hashSecret`, `version = 2.1.0`, `command = pay`).
+  2. Tiện ích mật mã học `VNPayHelper`:
+     - Triển khai thuật toán băm HMAC-SHA512 sinh chuỗi hex 128 ký tự theo chuẩn VNPay.
+     - Hàm sắp xếp tham số alphabetically (US-ASCII) và URL-encoding để chống tấn công giả mạo dữ liệu giao dịch.
+     - Xác thực chữ ký số tự động (`verifySignature`) cho các yêu cầu từ Webhook IPN và Return URL.
+  3. DTOs: `CreatePaymentRequest`, `VNPayPaymentResponse`, `VNPayIpnResponse`.
+  4. Nghiệp vụ thanh toán `PaymentService`:
+     - Khởi tạo thanh toán VNPay (`createVNPayPayment`): Tính tổng tiền đơn hàng nhóm đa Shop (`groupOrderCode`), nhân hệ số 100, tạo URL thanh toán VNPay kèm chữ ký số và lưu bản ghi `Payment` ở trạng thái `UNPAID`.
+     - Xử lý Webhook IPN (`processIpn`): Kiểm tra checksum chữ ký số, kiểm tra tồn tại đơn hàng, kiểm tra khớp số tiền, chống xác nhận trùng lặp (Idempotency). Khi thanh toán thành công (`vnp_ResponseCode == "00"`), tự động cập nhật tất cả các đơn hàng con trong nhóm sang `paymentStatus = PAID` và lưu mã giao dịch `vnp_TransactionNo`.
+     - Xử lý Return URL (`processCallback`): Tiếp nhận phản hồi khi trình duyệt người dùng quay lại từ cổng VNPay.
+  5. Bộ điều khiển REST `PaymentController` tại `/api/v1/payment`:
+     - `POST /api/v1/payment/vnpay/create-payment`: Khởi tạo liên kết thanh toán VNPay Sandbox.
+     - `GET /api/v1/payment/vnpay/ipn`: Webhook Server-to-Server tiếp nhận IPN từ VNPay (Public).
+     - `GET /api/v1/payment/vnpay/callback`: Tiếp nhận callback chuyển hướng người dùng (Public).
+  6. Bộ kiểm thử tích hợp `VNPayPaymentTest` gồm 6 bài kiểm thử toàn diện (băm HMAC-SHA512, chữ ký hợp lệ/giả mạo, sinh URL thanh toán, xử lý IPN thành công cập nhật đơn sang PAID, phát hiện sai Checksum trả về RspCode 97, đơn không tồn tại trả về RspCode 01, và xử lý đơn đã thanh toán trước đó trả về RspCode 02) đạt 100% PASS (Tổng 40/40 backend tests PASS, `npm run build` frontend PASS).
+* **Lý do thay đổi:** Hoàn thành Task 7 theo kế hoạch triển khai, cung cấp cổng thanh toán trực tuyến qua QR/thẻ ATM/Visa Sandbox cho Chopee.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Hệ thống chưa có cổng thanh toán trực tuyến, chỉ có mô hình dữ liệu Payment cơ bản.
+  * *Sau:* Tích hợp hoàn chỉnh cổng VNPay Sandbox với xác thực HMAC-SHA512 và IPN webhook tự động cập nhật đơn nhóm.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/payment/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/test/java/com/chopee/modules/payment/VNPayPaymentTest.java`.
+
+
 
 
 
