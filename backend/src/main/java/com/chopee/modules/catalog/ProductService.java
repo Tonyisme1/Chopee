@@ -110,7 +110,7 @@ public class ProductService {
                 .intValue();
     }
 
-    private ProductSummaryResponse mapToSummaryResponse(Product product) {
+    public ProductSummaryResponse mapToSummaryResponse(Product product) {
         return ProductSummaryResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -136,7 +136,7 @@ public class ProductService {
                 .build();
     }
 
-    private ProductDetailResponse mapToDetailResponse(Product product) {
+    public ProductDetailResponse mapToDetailResponse(Product product) {
         List<ProductImageResponse> imageResponses = new ArrayList<>();
         if (product.getImages() != null) {
             imageResponses = product.getImages().stream()

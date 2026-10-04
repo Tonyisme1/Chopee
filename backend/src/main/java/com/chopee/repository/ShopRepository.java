@@ -2,6 +2,8 @@ package com.chopee.repository;
 
 import com.chopee.entity.Shop;
 import com.chopee.entity.enums.ShopStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +15,8 @@ public interface ShopRepository extends JpaRepository<Shop, Long> {
     Optional<Shop> findBySlug(String slug);
     Optional<Shop> findByUserId(Long userId);
     List<Shop> findByStatus(ShopStatus status);
+    Page<Shop> findByStatus(ShopStatus status, Pageable pageable);
+    long countByStatus(ShopStatus status);
     boolean existsBySlug(String slug);
 }
 

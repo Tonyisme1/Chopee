@@ -310,6 +310,38 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Tích hợp hoàn chỉnh cổng VNPay Sandbox với xác thực HMAC-SHA512 và IPN webhook tự động cập nhật đơn nhóm.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/payment/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/test/java/com/chopee/modules/payment/VNPayPaymentTest.java`.
 
+---
+
+### 📌 [CHG-20261004-017] Triển khai Task 8: Phân hệ Kênh Người Bán & Quản Trị Hệ Thống (Seller Center & Admin Platform Management APIs)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Backend Architect & Security Specialist
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `SELLER_CENTER`, `ADMIN_PORTAL`, `SECURITY`, `MULTI_VENDOR`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh phân hệ Kênh Người Bán (Seller Center) và Quản trị Sàn (Admin Management):
+  1. Module Kênh Người Bán (`SellerService`, `SellerController` tại `/api/v1/seller/**` bảo vệ bởi `@PreAuthorize("hasRole('SELLER')")`):
+     - `GET /api/v1/seller/dashboard`: Thống kê doanh thu (loại trừ đơn `CANCELLED`), số lượng đơn theo từng trạng thái (`PENDING`, `CONFIRMED`, `SHIPPING`, `DELIVERED`, `CANCELLED`), tổng số sản phẩm và đánh giá trung bình của shop.
+     - `GET /api/v1/seller/products`: Danh sách sản phẩm của riêng gian hàng phân trang.
+     - `POST /api/v1/seller/products`: Thêm mới sản phẩm kèm danh sách ảnh và các biến thể phân loại (`variants`).
+     - `PUT /api/v1/seller/products/{id}`: Cập nhật thông tin sản phẩm, thuộc tính linh hoạt (`attributes`), ảnh và biến thể.
+     - `DELETE /api/v1/seller/products/{id}`: Xóa mềm sản phẩm (chuyển sang `INACTIVE`).
+     - `GET /api/v1/seller/orders`: Danh sách đơn hàng phân trang của riêng shop, hỗ trợ lọc theo `OrderStatus`.
+     - `GET /api/v1/seller/orders/{orderCode}`: Chi tiết đơn hàng thuộc shop.
+     - `PUT /api/v1/seller/orders/{orderCode}/status`: Cập nhật trạng thái đơn hàng theo luồng (`CONFIRMED -> SHIPPING -> DELIVERED` hoặc `CANCELLED`), tự động hoàn lại tồn kho nguyên tử (`restoreStock`) khi hủy đơn, chặn cập nhật trạng thái đơn đã kết thúc (`DELIVERED`/`CANCELLED`).
+  2. Module Quản Trị Hệ Thống (`AdminService`, `AdminController` tại `/api/v1/admin/**` bảo vệ bởi `@PreAuthorize("hasRole('ADMIN')")`):
+     - `GET /api/v1/admin/dashboard`: Thống kê tổng số người dùng, người bán, người mua, tổng số gian hàng, gian hàng chờ duyệt (`PENDING`), gian hàng hoạt động (`APPROVED`), gian hàng bị khóa (`LOCKED`), tổng đơn hàng và tổng giá trị giao dịch GMV toàn sàn.
+     - `GET /api/v1/admin/shops`: Danh sách gian hàng phân trang kèm bộ lọc trạng thái.
+     - `PUT /api/v1/admin/shops/{id}/status`: Phê duyệt hoặc tạm khóa gian hàng vi phạm chính sách (`PENDING -> APPROVED -> LOCKED`).
+  3. Bảo vệ IDOR Đa Người Bán Tuyệt Đối:
+     - Mọi endpoint của Seller Center đều kiểm tra xác thực quyền sở hữu tài nguyên qua `Shop.user.id == seller.id` hoặc `Product.shop.id == seller.shop.id` hoặc `Order.shop.id == seller.shop.id`.
+     - Bất kỳ nỗ lực đọc hoặc sửa sản phẩm/đơn hàng của gian hàng khác đều bị chặn ngay lập tức với mã HTTP 403 Forbidden.
+  4. Bộ kiểm thử tích hợp & bảo mật `SellerSecurityTest` gồm 6 bài kiểm thử toàn diện đạt 100% PASS (Tổng 46/46 backend tests PASS, `npm run build` frontend PASS).
+* **Lý do thay đổi:** Hoàn thành Task 8 theo kế hoạch triển khai, đảm bảo tính toàn vẹn đa người bán và bảo mật IDOR.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có API quản lý cho Kênh Người Bán và Quản trị viên Sàn.
+  * *Sau:* Hệ thống Seller Center và Admin Portal hoàn chỉnh, bảo mật chống IDOR tuyệt đối, kiểm soát chặt chẽ luồng đơn hàng và vận hành gian hàng.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/seller/`, `backend/src/main/java/com/chopee/modules/admin/`, `backend/src/main/java/com/chopee/repository/`, `backend/src/test/java/com/chopee/modules/seller/`.
+
+
 
 
 

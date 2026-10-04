@@ -297,7 +297,7 @@ public class OrderService {
         return allItems;
     }
 
-    private OrderResponse mapToOrderResponse(Order order) {
+    public OrderResponse mapToOrderResponse(Order order) {
         List<OrderItemResponse> itemResponses = order.getItems() != null
                 ? order.getItems().stream().map(this::mapToOrderItemResponse).collect(Collectors.toList())
                 : Collections.emptyList();

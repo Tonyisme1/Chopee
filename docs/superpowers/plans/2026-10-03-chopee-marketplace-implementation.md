@@ -276,19 +276,19 @@
 **Interfaces:**
 - Produces: `/api/v1/seller/dashboard`, `/api/v1/seller/products`, `/api/v1/seller/orders`, `/api/v1/admin/dashboard`, `/api/v1/admin/shops`.
 
-- [ ] **Step 1: Write IDOR security tests for Seller operations**
+- [x] **Step 1: Write IDOR security tests for Seller operations**
   Verify Seller A receives HTTP 403 when updating Seller B's product or order status.
 
-- [ ] **Step 2: Implement Seller Service & Controller**
+- [x] **Step 2: Implement Seller Service & Controller**
   Product CRUD with JSON attributes and image URLs; order state transitions (`CONFIRMED`, `SHIPPING`); dashboard revenue aggregation.
 
-- [ ] **Step 3: Implement Admin Service & Controller**
+- [x] **Step 3: Implement Admin Service & Controller**
   Approve/Reject new shop registrations; lock violating shops; platform-wide revenue & order analytics.
 
-- [ ] **Step 4: Run tests and verify**
+- [x] **Step 4: Run tests and verify**
   Run: `mvn test -Dtest=SellerSecurityTest`. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git add backend/ && git commit -m "feat: implement Seller Center and Admin Management APIs with IDOR protection"`
 
 ---
