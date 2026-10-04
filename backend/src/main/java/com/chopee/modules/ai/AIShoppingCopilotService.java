@@ -127,10 +127,13 @@ public class AIShoppingCopilotService {
             if (products != null && !products.isEmpty()) {
                 prompt.append("Các sản phẩm thực tế đang có sẵn trên sàn Chopee phù hợp với câu hỏi của khách:\n");
                 for (ProductSummaryResponse p : products) {
+                    String shopLink = String.format("[%s](/shop/%s)", p.getShopName(), p.getShopSlug() != null ? p.getShopSlug() : p.getShopId());
                     prompt.append(String.format("- %s (Giá: %,d đ, Đơn vị: %s, Gian hàng: %s)\n",
-                            p.getName(), p.getSellingPrice().longValue(), p.getUnit(), p.getShopName()));
+                            p.getName(), p.getSellingPrice().longValue(), p.getUnit(), shopLink));
                 }
-                prompt.append("\nHãy hướng dẫn khách cách mua sắm các sản phẩm trên, nhấn mạnh rằng họ có thể bấm nút 'Thêm vào giỏ hàng' trực tiếp tại các thẻ sản phẩm bên dưới màn hình chat.\n");
+                prompt.append("\nQUY TẮC BẮT BUỘC:\n");
+                prompt.append("1. Khi nhắc đến bất kỳ gian hàng hoặc người bán nào, bạn BẮT BUỘC phải tạo link Markdown đến gian hàng đó theo định dạng [Tên Gian Hàng](/shop/{shopSlug}) (ví dụ: [Nông Sản Sạch Đà Lạt](/shop/nong-san-sach-da-lat)) để khách hàng có thể click vào xem gian hàng.\n");
+                prompt.append("2. Hãy hướng dẫn khách cách mua sắm các sản phẩm trên, nhấn mạnh rằng họ có thể bấm nút 'Thêm vào giỏ hàng' trực tiếp tại các thẻ sản phẩm bên dưới màn hình chat hoặc click vào tên gian hàng để khám phá thêm nhiều mặt hàng hấp dẫn khác.\n");
             }
 
             if (budget != null) {
@@ -319,7 +322,12 @@ public class AIShoppingCopilotService {
                 sb.append("3. **Trình bày:** Nêm nếm vừa ăn, thêm rau thơm và dùng nóng để thưởng thức trọn vị ngon!\n\n");
                 if (!products.isEmpty()) {
                     sb.append("🛒 **Nguyên liệu đang có sẵn giao ngay trên Chopee:**\n");
-                    sb.append("Bạn có thể bấm **\"Thêm vào giỏ hàng\"** trực tiếp ở các thẻ sản phẩm bên dưới để chuẩn bị bữa cơm trọn vẹn nhé!");
+                    for (ProductSummaryResponse p : products) {
+                        String shopSlug = p.getShopSlug() != null ? p.getShopSlug() : String.valueOf(p.getShopId());
+                        sb.append(String.format("- **%s** (%s đ / %s) - từ gian hàng [%s](/shop/%s)\n",
+                                p.getName(), currencyFormat.format(p.getSellingPrice()), p.getUnit(), p.getShopName(), shopSlug));
+                    }
+                    sb.append("\nBạn có thể bấm **\"Thêm vào giỏ hàng\"** trực tiếp ở các thẻ sản phẩm bên dưới hoặc click vào tên gian hàng để xem thêm sản phẩm nhé!");
                 } else {
                     sb.append("Hiện tại các nguyên liệu chuyên biệt cho món này đang được cập nhật thêm hàng mới, bạn hãy tham khảo thêm các gian hàng nông sản trên sàn nhé!");
                 }
@@ -333,7 +341,12 @@ public class AIShoppingCopilotService {
                 sb.append("- **Bảo hành chính hãng:** Các sản phẩm trên Chopee đều được cam kết bảo hành chính hãng từ 12 - 24 tháng.\n\n");
                 if (!products.isEmpty()) {
                     sb.append("📱 **Sản phẩm đề xuất tốt nhất dành cho bạn:**\n");
-                    sb.append("Danh sách các model được đánh giá cao kèm giá ưu đãi bên dưới:");
+                    for (ProductSummaryResponse p : products) {
+                        String shopSlug = p.getShopSlug() != null ? p.getShopSlug() : String.valueOf(p.getShopId());
+                        sb.append(String.format("- **%s** (%s đ) - cung cấp bởi [%s](/shop/%s)\n",
+                                p.getName(), currencyFormat.format(p.getSellingPrice()), p.getShopName(), shopSlug));
+                    }
+                    sb.append("\nDanh sách các model được đánh giá cao kèm giá ưu đãi bên dưới thẻ:");
                 }
                 break;
 
@@ -346,7 +359,14 @@ public class AIShoppingCopilotService {
                     sb.append("Dưới đây là các combo sản phẩm có mức giá cực tốt cùng nhiều mã khuyến mãi đang áp dụng:\n\n");
                 }
                 sb.append("- Áp dụng thêm Voucher Freeship hoặc mã giảm giá của từng shop khi đặt đơn hàng để tiết kiệm thêm!\n\n");
-                sb.append("🛍️ **Danh sách sản phẩm phù hợp ngân sách:**");
+                if (!products.isEmpty()) {
+                    sb.append("🛍️ **Danh sách sản phẩm phù hợp ngân sách:**\n");
+                    for (ProductSummaryResponse p : products) {
+                        String shopSlug = p.getShopSlug() != null ? p.getShopSlug() : String.valueOf(p.getShopId());
+                        sb.append(String.format("- **%s** (%s đ) - gian hàng [%s](/shop/%s)\n",
+                                p.getName(), currencyFormat.format(p.getSellingPrice()), p.getShopName(), shopSlug));
+                    }
+                }
                 break;
 
             default:
@@ -356,7 +376,12 @@ public class AIShoppingCopilotService {
                 sb.append("🔌 **Tư vấn thông số kỹ thuật đồ gia dụng, thiết bị công nghệ**\n");
                 sb.append("💡 **Gợi ý giỏ hàng thông minh theo ngân sách mong muốn**\n\n");
                 if (!products.isEmpty()) {
-                    sb.append("Dưới đây là một số sản phẩm nổi bật đang được ưa chuộng trên chợ hôm nay:");
+                    sb.append("Dưới đây là một số sản phẩm nổi bật đang được ưa chuộng trên chợ hôm nay:\n");
+                    for (ProductSummaryResponse p : products) {
+                        String shopSlug = p.getShopSlug() != null ? p.getShopSlug() : String.valueOf(p.getShopId());
+                        sb.append(String.format("- **%s** (%s đ) - từ gian hàng [%s](/shop/%s)\n",
+                                p.getName(), currencyFormat.format(p.getSellingPrice()), p.getShopName(), shopSlug));
+                    }
                 } else {
                     sb.append("Bạn đang quan tâm đến món ăn hay mặt hàng nào? Hãy chia sẻ cho tôi biết nhé!");
                 }

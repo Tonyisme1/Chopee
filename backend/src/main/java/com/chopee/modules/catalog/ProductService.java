@@ -130,6 +130,7 @@ public class ProductService {
                 .reviewCount(product.getReviewCount())
                 .shopId(product.getShop() != null ? product.getShop().getId() : null)
                 .shopName(product.getShop() != null ? product.getShop().getName() : null)
+                .shopSlug(product.getShop() != null ? product.getShop().getSlug() : null)
                 .shopAddress(product.getShop() != null ? product.getShop().getAddress() : null)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)

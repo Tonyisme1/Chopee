@@ -31,6 +31,7 @@ public class ProductSummaryResponse {
     private Integer reviewCount;
     private Long shopId;
     private String shopName;
+    private String shopSlug;
     private String shopAddress;
     private Long categoryId;
     private String categoryName;
