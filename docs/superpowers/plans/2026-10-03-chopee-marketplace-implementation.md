@@ -180,20 +180,20 @@
 **Interfaces:**
 - Produces: `GET /api/v1/buyer/cart`, `POST /api/v1/buyer/cart/items`, `PUT /api/v1/buyer/cart/items/{id}`, `DELETE /api/v1/buyer/cart/items/{id}`.
 
-- [ ] **Step 1: Write unit tests for Cart operations**
+- [x] **Step 1: Write unit tests for Cart operations**
   Test adding fractional quantity (e.g., `0.5kg`), incrementing quantity by `stepQuantity`, grouping cart items by shop.
 
-- [ ] **Step 2: Implement `CartService`**
+- [x] **Step 2: Implement `CartService`**
   Validate product existence, stock availability, and enforce `minOrderQuantity`.
   Return `CartResponse` containing items grouped by `shopId` with subtotal per shop.
 
-- [ ] **Step 3: Implement `CartController`**
+- [x] **Step 3: Implement `CartController`**
   Annotate with `@PreAuthorize("hasRole('BUYER')")`.
 
-- [ ] **Step 4: Run tests and verify**
+- [x] **Step 4: Run tests and verify**
   Run: `mvn test -Dtest=CartServiceTest`. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git add backend/ && git commit -m "feat: implement multi-vendor cart with fractional quantity support"`
 
 ---

@@ -40,6 +40,9 @@ class CatalogControllerTest {
     private ProductVariantRepository productVariantRepository;
 
     @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
     private ShopRepository shopRepository;
 
     @Autowired
@@ -55,6 +58,7 @@ class CatalogControllerTest {
 
     @BeforeEach
     void setUp() {
+        cartItemRepository.deleteAll();
         productImageRepository.deleteAll();
         productVariantRepository.deleteAll();
         productRepository.deleteAll();

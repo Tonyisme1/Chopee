@@ -223,4 +223,33 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Có đầy đủ 7 endpoint public phục vụ duyệt cây danh mục, tìm kiếm lọc thực phẩm tươi sống/đông lạnh và trang chi tiết sản phẩm.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/catalog/`, `backend/src/main/java/com/chopee/common/dto/PageResponse.java`, `backend/src/main/java/com/chopee/repository/ProductRepository.java`, `backend/src/test/java/com/chopee/modules/catalog/CatalogControllerTest.java`.
 
+---
+
+### 📌 [CHG-20261004-014] Triển khai Task 5: Quản lý Giỏ hàng Đa Người Bán & Bán Hàng Lẻ Thập Phân (Multi-Vendor Cart)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Backend Architect & Lead Developer
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `CART`, `MULTI_VENDOR`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh phân hệ Giỏ hàng cho Người mua (Buyer) hỗ trợ sàn thương mại đa người bán:
+  1. Các DTO chuẩn hóa: `AddToCartRequest`, `UpdateCartItemRequest`, `CartItemResponse`, `ShopCartGroupResponse`, `CartResponse`.
+  2. Xử lý nghiệp vụ tại `CartService`:
+     - Tự động gom nhóm các món hàng theo từng gian hàng (`Shop`) riêng biệt trong giỏ hàng và tính subtotal cho từng shop.
+     - Hỗ trợ số lượng lẻ dạng số thập phân (`BigDecimal`) phù hợp cho nông sản & thực phẩm tươi sống (ví dụ: `0.5kg`, `1.5kg`).
+     - Kiểm tra nghiêm ngặt số lượng tối thiểu (`minOrderQuantity`) và bước nhảy số lượng (`stepQuantity`).
+     - Tự động cộng dồn số lượng nếu sản phẩm/biến thể đã có trong giỏ hàng.
+     - Bảo vệ chống IDOR: Chỉ cho phép người sở hữu giỏ hàng sửa hoặc xóa sản phẩm của chính mình.
+  3. Bộ điều khiển REST `CartController` tại `/api/v1/buyer/cart`:
+     - `GET /api/v1/buyer/cart`: Lấy giỏ hàng gom nhóm theo từng shop cùng tổng giá trị giỏ hàng.
+     - `POST /api/v1/buyer/cart/items`: Thêm sản phẩm vào giỏ hàng.
+     - `PUT /api/v1/buyer/cart/items/{id}`: Cập nhật số lượng sản phẩm.
+     - `DELETE /api/v1/buyer/cart/items/{id}`: Xóa một món hàng khỏi giỏ.
+     - `DELETE /api/v1/buyer/cart/clear`: Xóa sạch giỏ hàng.
+  4. Bộ kiểm thử tích hợp: `CartServiceTest` (6 tests) và `CartControllerTest` (2 tests) đạt 100% PASS (Tổng 29/29 backend tests PASS).
+* **Lý do thay đổi:** Hoàn thành Task 5 theo kế hoạch triển khai, tạo nền tảng vững chắc để người mua gom hàng từ nhiều shop trước khi bước vào quy trình Đặt hàng & Tách đơn đa Shop (Task 6).
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có phân hệ giỏ hàng, người dùng chưa thể lưu sản phẩm để thanh toán.
+  * *Sau:* Có hệ thống giỏ hàng hoàn chỉnh, tự động tách nhóm theo shop và tính toán giá trị chuẩn xác.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/cart/`, `backend/src/main/java/com/chopee/repository/CartItemRepository.java`, `backend/src/test/java/com/chopee/modules/cart/`.
+
+
 
