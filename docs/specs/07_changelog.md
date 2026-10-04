@@ -374,6 +374,42 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống AI Copilot hoàn chỉnh kết hợp RAG với cơ sở dữ liệu thực, tự động đề xuất nguyên liệu tươi sống, đồ gia dụng và thẻ sản phẩm mua ngay trong chat.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/ai/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/test/java/com/chopee/modules/ai/AIServiceTest.java`.
 
+---
+
+### 📌 [CHG-20261004-019] Triển khai Task 10: Khởi Tạo Dữ Liệu Thực Tế Chợ Việt Nam (Realistic Vietnamese Marketplace Multi-Industry Data Seeding)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Lead Database Engineer & QA Specialist
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `DATA_SEEDING`, `DATABASE`, `CATALOG`, `MULTI_VENDOR`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh cơ chế nạp dữ liệu mẫu khởi đầu (Data Seeding) chuẩn thương mại điện tử Việt Nam:
+  1. Component Khởi tạo Dữ liệu `DataInitializer` (kế thừa `CommandLineRunner`):
+     - Kiểm tra trạng thái Database: Tự động phát hiện cơ sở dữ liệu trống (`userRepository.count() == 0`) để nạp toàn bộ dữ liệu mẫu một cách an toàn và bỏ qua nếu dữ liệu đã tồn tại.
+  2. Tạo 7 Tài khoản Người dùng chuẩn mật khẩu `123456` (đã mã hóa BCrypt):
+     - 1 Quản trị viên (`admin@chopee.vn`, `ROLE_ADMIN`).
+     - 5 Chủ gian hàng (`dalat_farm@chopee.vn`, `hungphat_beverage@chopee.vn`, `philips_mall@chopee.vn`, `techzone_official@chopee.vn`, `unistyle_fashion@chopee.vn`, `ROLE_SELLER`).
+     - 1 Khách mua hàng (`buyer1@chopee.vn`, `ROLE_BUYER`).
+  3. Tạo 5 Gian hàng (`Shop`) thuộc các ngành nghề kinh doanh trọng điểm:
+     - *Nông Sản Sạch Đà Lạt* (`FOOD_FRESH`, rating 4.9).
+     - *Đại Lý Đồ Uống Hùng Phát* (`GENERAL`, rating 4.8).
+     - *Thế Giới Gia Dụng Philips* (`OFFICIAL_MALL`, rating 4.95).
+     - *TechZone Official Store* (`OFFICIAL_MALL`, rating 4.85).
+     - *UniStyle - Thời Trang & Phụ Kiện* (`GENERAL`, rating 4.75).
+  4. Tạo Cây Danh mục Sản phẩm phân cấp cha - con 2 tầng gồm 14 danh mục (Thực phẩm tươi sống, Rau củ quả, Thịt hải sản, Đồ uống có cồn, Nước ngọt trà, Thiết bị gia dụng, Nồi chiên bếp điện, Máy xay ép, Phụ kiện công nghệ, Tai nghe loa, Bàn phím chuột, Pin sạc cáp, Thời trang).
+  5. Tạo 31 Sản phẩm thực tế Việt Nam với đầy đủ thông số:
+     - Nông sản tươi sống: Cà chua beef Đà Lạt, dưa leo baby, đậu bắp xanh, thơm mật, bắp cải trái tim, cá basa phi lê, thịt ba chỉ heo CP, tôm sú Cà Mau, nấm đùi gà, xà lách lolo (hỗ trợ mua lẻ bước nhảy 0.5kg, bảo quản `FRESH`, chứng nhận VietGAP, OCOP).
+     - Đồ uống & Giải khát: Thùng bia Heineken Silver 330ml, Tiger Crystal, Coca-Cola 320ml, Sprite lốc 6 lon, Lavie thùng 24 chai, Trà xanh Không Độ (đầy đủ quy cách đóng thùng, lốc, thể tích).
+     - Thiết bị gia dụng: Nồi chiên không dầu Philips HD9252, nồi cơm cao tần Tefal 1.5L, máy xay Philips HR2223, bếp từ đôi Inverter Sunhouse, ấm siêu tốc Lock&Lock, bàn là đứng Philips (thông số công suất, dung tích, bảo hành 24-36 tháng).
+     - Phụ kiện công nghệ: Tai nghe Sony WH-1000XM5, Galaxy Buds2 Pro, chuột Logitech MX Master 3S, bàn phím cơ Keychron K2 Pro, sạc dự phòng Anker 65W, củ sạc GaN Ugreen 65W.
+     - Thời trang & phụ kiện: Áo thun cotton trơn UniStyle, áo khoác gió thể thao trượt nước, balo laptop chống sốc Oxford.
+     - Tạo biến thể phân loại (`variants`) theo kích cỡ, trọng lượng túi 500g / 1kg.
+  6. Bộ kiểm thử tích hợp `DataInitializerTest` đạt 100% PASS (Tổng cộng 52/52 backend tests PASS, `npm run build` frontend PASS).
+* **Lý do thay đổi:** Hoàn thành Task 10 theo kế hoạch triển khai, tạo bộ dữ liệu mẫu phong phú, sinh động chuẩn chợ TMĐT Việt Nam phục vụ chạy thử nghiệm, kiểm thử tự động và trình diễn demo.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Cơ sở dữ liệu trống, thiếu dữ liệu đa ngành để kiểm thử thực tế và trải nghiệm giao diện người dùng.
+  * *Sau:* Hệ thống sở hữu 7 tài khoản mẫu, 5 shop, 14 danh mục và 31 sản phẩm chất lượng cao sẵn sàng đưa vào vận hành.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/config/DataInitializer.java`, `backend/src/test/java/com/chopee/config/DataInitializerTest.java`.
+
+
 
 
 

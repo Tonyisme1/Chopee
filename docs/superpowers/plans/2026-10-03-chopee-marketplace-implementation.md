@@ -335,16 +335,16 @@
 **Interfaces:**
 - Produces: Pre-populated MySQL database on startup with 5 realistic shops, categories, 30+ products across all industries, and 4 test accounts.
 
-- [ ] **Step 1: Implement `DataInitializer` bean implementing `CommandLineRunner`**
+- [x] **Step 1: Implement `DataInitializer` bean implementing `CommandLineRunner`**
   Add test users: `admin`, `seller_food`, `seller_drink`, `buyer1` (password: `123456`).
   Add 5 shops: *Nông Sản Sạch Đà Lạt*, *Đại Lý Đồ Uống Hùng Phát*, *Thế Giới Gia Dụng Philips*, *TechZone*, *UniStyle*.
   Add categories with parent-child hierarchy (Thực phẩm tươi sống, Nước giải khát, Thiết bị gia dụng, Phụ kiện công nghệ, Thời trang).
   Add products with real images, prices, units (`kg`, `thùng`, `chiếc`), and rich JSON attributes.
 
-- [ ] **Step 2: Run backend test verifying data is seeded without errors**
+- [x] **Step 2: Run backend test verifying data is seeded without errors**
   Run: `mvn test -Dtest=DataInitializerTest`. Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git add backend/ && git commit -m "feat: add realistic Vietnamese multi-industry marketplace data initializer"`
 
 ---
