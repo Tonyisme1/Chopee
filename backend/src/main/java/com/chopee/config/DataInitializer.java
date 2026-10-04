@@ -27,66 +27,13 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (productRepository.count() > 0) {
-            boolean hasGarbled = productRepository.findAll().stream()
-                    .anyMatch(p -> p.getName() != null && (p.getName().contains("Ã") || p.getName().contains("á»")));
-            if (hasGarbled) {
-                log.info("Phát hiện dữ liệu mã hóa ký tự cũ, tự động xóa và nạp lại chuẩn UTF-8...");
-                productRepository.deleteAll();
-                categoryRepository.deleteAll();
-                shopRepository.deleteAll();
-            }
-        }
-
-        if (productRepository.count() == 0) {
+        if (userRepository.count() == 0) {
             log.info("Khởi tạo dữ liệu mẫu sàn Chopee Marketplace...");
             seedData();
-            log.info("Khởi tạo dữ liệu mẫu thành công! Tổng sản phẩm: {}", productRepository.count());
+            log.info("Khởi tạo dữ liệu mẫu thành công!");
         } else {
-            log.info("Cơ sở dữ liệu đã có dữ liệu sản phẩm ({} sản phẩm), bỏ qua bước khởi tạo mẫu.", productRepository.count());
+            log.info("Cơ sở dữ liệu đã có dữ liệu, bỏ qua bước khởi tạo mẫu.");
         }
-    }
-
-    private User getOrCreateUser(String username, String email, String fullName, String phone, String avatarUrl, Role role, String defaultPasswordHash) {
-        return userRepository.findByUsername(username)
-                .orElseGet(() -> userRepository.save(User.builder()
-                        .username(username)
-                        .passwordHash(defaultPasswordHash)
-                        .email(email)
-                        .fullName(fullName)
-                        .phone(phone)
-                        .avatarUrl(avatarUrl)
-                        .role(role)
-                        .status(UserStatus.ACTIVE)
-                        .build()));
-    }
-
-    private Shop getOrCreateShop(User user, String name, String slug, String description, ShopType shopType, String address, String phone, String logoUrl, String bannerUrl) {
-        return shopRepository.findBySlug(slug)
-                .orElseGet(() -> shopRepository.save(Shop.builder()
-                        .user(user)
-                        .name(name)
-                        .slug(slug)
-                        .description(description)
-                        .shopType(shopType)
-                        .status(ShopStatus.APPROVED)
-                        .address(address)
-                        .phone(phone)
-                        .logoUrl(logoUrl)
-                        .bannerUrl(bannerUrl)
-                        .rating(new BigDecimal("4.9"))
-                        .build()));
-    }
-
-    private Category getOrCreateCategory(String name, String slug, String iconUrl, Category parent, int displayOrder) {
-        return categoryRepository.findBySlug(slug)
-                .orElseGet(() -> categoryRepository.save(Category.builder()
-                        .name(name)
-                        .slug(slug)
-                        .iconUrl(iconUrl)
-                        .parent(parent)
-                        .displayOrder(displayOrder)
-                        .build()));
     }
 
     @Transactional
@@ -94,77 +41,261 @@ public class DataInitializer implements CommandLineRunner {
         String defaultPasswordHash = passwordEncoder.encode("123456");
 
         // 1. Tạo Tài khoản Người dùng
-        User admin = getOrCreateUser("admin", "admin@chopee.vn", "Quản Trị Viên Chopee", "0901234567",
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", Role.ROLE_ADMIN, defaultPasswordHash);
+        User admin = userRepository.save(User.builder()
+                .username("admin")
+                .passwordHash(defaultPasswordHash)
+                .email("admin@chopee.vn")
+                .fullName("Quản Trị Viên Chopee")
+                .phone("0901234567")
+                .avatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150")
+                .role(Role.ROLE_ADMIN)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User sellerFood = getOrCreateUser("seller_food", "dalat_farm@chopee.vn", "Nguyễn Văn Nông", "0912345678",
-                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150", Role.ROLE_SELLER, defaultPasswordHash);
+        User sellerFood = userRepository.save(User.builder()
+                .username("seller_food")
+                .passwordHash(defaultPasswordHash)
+                .email("dalat_farm@chopee.vn")
+                .fullName("Nguyễn Văn Nông")
+                .phone("0912345678")
+                .avatarUrl("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150")
+                .role(Role.ROLE_SELLER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User sellerDrink = getOrCreateUser("seller_drink", "hungphat_beverage@chopee.vn", "Trần Hùng Phát", "0923456789",
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150", Role.ROLE_SELLER, defaultPasswordHash);
+        User sellerDrink = userRepository.save(User.builder()
+                .username("seller_drink")
+                .passwordHash(defaultPasswordHash)
+                .email("hungphat_beverage@chopee.vn")
+                .fullName("Trần Hùng Phát")
+                .phone("0923456789")
+                .avatarUrl("https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150")
+                .role(Role.ROLE_SELLER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User sellerAppliance = getOrCreateUser("seller_appliances", "philips_mall@chopee.vn", "Lê Hoàng Philips", "0934567890",
-                "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150", Role.ROLE_SELLER, defaultPasswordHash);
+        User sellerAppliance = userRepository.save(User.builder()
+                .username("seller_appliances")
+                .passwordHash(defaultPasswordHash)
+                .email("philips_mall@chopee.vn")
+                .fullName("Lê Hoàng Philips")
+                .phone("0934567890")
+                .avatarUrl("https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150")
+                .role(Role.ROLE_SELLER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User sellerTech = getOrCreateUser("seller_tech", "techzone_official@chopee.vn", "Vũ Minh Tech", "0945678901",
-                "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150", Role.ROLE_SELLER, defaultPasswordHash);
+        User sellerTech = userRepository.save(User.builder()
+                .username("seller_tech")
+                .passwordHash(defaultPasswordHash)
+                .email("techzone_official@chopee.vn")
+                .fullName("Vũ Minh Tech")
+                .phone("0945678901")
+                .avatarUrl("https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150")
+                .role(Role.ROLE_SELLER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User sellerFashion = getOrCreateUser("seller_fashion", "unistyle_fashion@chopee.vn", "Đỗ Thảo Vy", "0956789012",
-                "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150", Role.ROLE_SELLER, defaultPasswordHash);
+        User sellerFashion = userRepository.save(User.builder()
+                .username("seller_fashion")
+                .passwordHash(defaultPasswordHash)
+                .email("unistyle_fashion@chopee.vn")
+                .fullName("Đỗ Thảo Vy")
+                .phone("0956789012")
+                .avatarUrl("https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150")
+                .role(Role.ROLE_SELLER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        User buyer = getOrCreateUser("buyer1", "buyer1@chopee.vn", "Hoàng Thị Mua Sắm", "0988776655",
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150", Role.ROLE_BUYER, defaultPasswordHash);
+        User buyer = userRepository.save(User.builder()
+                .username("buyer1")
+                .passwordHash(defaultPasswordHash)
+                .email("buyer1@chopee.vn")
+                .fullName("Hoàng Thị Mua Sắm")
+                .phone("0988776655")
+                .avatarUrl("https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150")
+                .role(Role.ROLE_BUYER)
+                .status(UserStatus.ACTIVE)
+                .build());
 
         // 2. Tạo 5 Gian hàng (Shops)
-        Shop shopFood = getOrCreateShop(sellerFood, "Nông Sản Sạch Đà Lạt", "nong-san-sach-da-lat",
-                "Chuyên cung cấp rau củ quả thủy canh VietGAP tươi ngon, thu hoạch hàng ngày tại nông trường Đà Lạt.",
-                ShopType.FOOD_FRESH, "Phường 7, TP. Đà Lạt, Lâm Đồng", "0912345678",
-                "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200",
-                "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1200");
+        Shop shopFood = shopRepository.save(Shop.builder()
+                .user(sellerFood)
+                .name("Nông Sản Sạch Đà Lạt")
+                .slug("nong-san-sach-da-lat")
+                .description("Chuyên cung cấp rau củ quả thủy canh VietGAP tươi ngon, thu hoạch hàng ngày tại nông trường Đà Lạt.")
+                .logoUrl("https://images.unsplash.com/photo-1542838132-92c53300491e?w=200")
+                .bannerUrl("https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1200")
+                .address("Phường 7, TP. Đà Lạt, Lâm Đồng")
+                .phone("0912345678")
+                .rating(new BigDecimal("4.9"))
+                .shopType(ShopType.FOOD_FRESH)
+                .status(ShopStatus.APPROVED)
+                .build());
 
-        Shop shopDrink = getOrCreateShop(sellerDrink, "Đại Lý Đồ Uống Hùng Phát", "dai-ly-do-uong-hung-phat",
-                "Phân phối sỉ lẻ bia, nước ngọt, trà đóng chai chính hãng. Cam kết date mới, giao nhanh trong ngày.",
-                ShopType.GENERAL, "Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh", "0923456789",
-                "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200",
-                "https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=1200");
+        Shop shopDrink = shopRepository.save(Shop.builder()
+                .user(sellerDrink)
+                .name("Đại Lý Đồ Uống Hùng Phát")
+                .slug("dai-ly-do-uong-hung-phat")
+                .description("Phân phối sỉ lẻ bia, nước ngọt, trà đóng chai chính hãng. Cam kết date mới, giao nhanh trong ngày.")
+                .logoUrl("https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200")
+                .bannerUrl("https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=1200")
+                .address("Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh")
+                .phone("0923456789")
+                .rating(new BigDecimal("4.8"))
+                .shopType(ShopType.GENERAL)
+                .status(ShopStatus.APPROVED)
+                .build());
 
-        Shop shopAppliance = getOrCreateShop(sellerAppliance, "Thế Giới Gia Dụng Philips", "the-gioi-gia-dung-philips",
-                "Gian hàng chính hãng phân phối thiết bị gia dụng nhà bếp cao cấp Philips, Tefal, Lock&Lock.",
-                ShopType.OFFICIAL_MALL, "Trần Duy Hưng, Cầu Giấy, Hà Nội", "0934567890",
-                "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200",
-                "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200");
+        Shop shopAppliance = shopRepository.save(Shop.builder()
+                .user(sellerAppliance)
+                .name("Thế Giới Gia Dụng Philips")
+                .slug("the-gioi-gia-dung-philips")
+                .description("Gian hàng chính hãng phân phối thiết bị gia dụng nhà bếp cao cấp Philips, Tefal, Lock&Lock.")
+                .logoUrl("https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200")
+                .bannerUrl("https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200")
+                .address("Trần Duy Hưng, Cầu Giấy, Hà Nội")
+                .phone("0934567890")
+                .rating(new BigDecimal("4.95"))
+                .shopType(ShopType.OFFICIAL_MALL)
+                .status(ShopStatus.APPROVED)
+                .build());
 
-        Shop shopTech = getOrCreateShop(sellerTech, "TechZone Official Store", "techzone-official-store",
-                "Cửa hàng công nghệ hàng đầu: tai nghe chống ồn, bàn phím cơ, chuột không dây và phụ kiện sạc cao cấp.",
-                ShopType.OFFICIAL_MALL, "Nguyễn Trãi, Thanh Xuân, Hà Nội", "0945678901",
-                "https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=200",
-                "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200");
+        Shop shopTech = shopRepository.save(Shop.builder()
+                .user(sellerTech)
+                .name("TechZone Official Store")
+                .slug("techzone-official-store")
+                .description("Cửa hàng công nghệ hàng đầu: tai nghe chống ồn, bàn phím cơ, chuột không dây và phụ kiện sạc cao cấp.")
+                .logoUrl("https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=200")
+                .bannerUrl("https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200")
+                .address("Nguyễn Trãi, Thanh Xuân, Hà Nội")
+                .phone("0945678901")
+                .rating(new BigDecimal("4.85"))
+                .shopType(ShopType.OFFICIAL_MALL)
+                .status(ShopStatus.APPROVED)
+                .build());
 
-        Shop shopFashion = getOrCreateShop(sellerFashion, "UniStyle - Thời Trang & Phụ Kiện", "unistyle-thoi-trang",
-                "Thương hiệu thời trang basic tối giản, áo thun cotton thoáng mát, áo khoác cản gió và balo tiện ích.",
-                ShopType.GENERAL, "Chùa Bộc, Đống Đa, Hà Nội", "0956789012",
-                "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200",
-                "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1200");
+        Shop shopFashion = shopRepository.save(Shop.builder()
+                .user(sellerFashion)
+                .name("UniStyle - Thời Trang & Phụ Kiện")
+                .slug("unistyle-thoi-trang")
+                .description("Thương hiệu thời trang basic tối giản, áo thun cotton thoáng mát, áo khoác cản gió và balo tiện ích.")
+                .logoUrl("https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200")
+                .bannerUrl("https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1200")
+                .address("Chùa Bộc, Đống Đa, Hà Nội")
+                .phone("0956789012")
+                .rating(new BigDecimal("4.75"))
+                .shopType(ShopType.GENERAL)
+                .status(ShopStatus.APPROVED)
+                .build());
 
         // 3. Tạo Cây Danh mục Sản phẩm (Categories)
-        Category catFoodRoot = getOrCreateCategory("Thực phẩm tươi sống", "thuc-pham-tuoi-song", "🥬", null, 1);
-        Category catVeggies = getOrCreateCategory("Rau củ quả tươi", "rau-cu-qua-tuoi", "🥕", catFoodRoot, 1);
-        Category catMeatFish = getOrCreateCategory("Thịt & Thủy hải sản", "thit-thuy-hai-san", "🐟", catFoodRoot, 2);
+        Category catFoodRoot = categoryRepository.save(Category.builder()
+                .name("Thực phẩm tươi sống")
+                .slug("thuc-pham-tuoi-song")
+                .iconUrl("🥬")
+                .displayOrder(1)
+                .build());
 
-        Category catDrinkRoot = getOrCreateCategory("Đồ uống & Giải khát", "do-uong-giai-khat", "🥤", null, 2);
-        Category catBeer = getOrCreateCategory("Bia & Đồ uống có cồn", "bia-do-uong-co-con", "🍺", catDrinkRoot, 1);
-        Category catSoftDrink = getOrCreateCategory("Nước ngọt & Trà giải nhiệt", "nuoc-ngot-tra-giai-nhiet", "🧃", catDrinkRoot, 2);
+        Category catVeggies = categoryRepository.save(Category.builder()
+                .name("Rau củ quả tươi")
+                .slug("rau-cu-qua-tuoi")
+                .parent(catFoodRoot)
+                .iconUrl("🥕")
+                .displayOrder(1)
+                .build());
 
-        Category catApplianceRoot = getOrCreateCategory("Thiết bị gia dụng", "thiet-bi-gia-dung", "🍳", null, 3);
-        Category catKitchen = getOrCreateCategory("Nồi chiên & Bếp điện", "noi-chien-bep-dien", "🥘", catApplianceRoot, 1);
-        Category catBlender = getOrCreateCategory("Máy xay & Máy ép", "may-xay-may-ep", "🍹", catApplianceRoot, 2);
+        Category catMeatFish = categoryRepository.save(Category.builder()
+                .name("Thịt & Thủy hải sản")
+                .slug("thit-thuy-hai-san")
+                .parent(catFoodRoot)
+                .iconUrl("🐟")
+                .displayOrder(2)
+                .build());
 
-        Category catTechRoot = getOrCreateCategory("Phụ kiện công nghệ", "phu-kien-cong-nghe", "🎧", null, 4);
-        Category catAudio = getOrCreateCategory("Tai nghe & Loa", "tai-nghe-loa", "🔊", catTechRoot, 1);
-        Category catPeripherals = getOrCreateCategory("Bàn phím & Chuột", "ban-phim-chuot", "⌨️", catTechRoot, 2);
-        Category catPower = getOrCreateCategory("Pin sạc & Cáp dữ liệu", "pin-sac-cap-du-lieu", "🔋", catTechRoot, 3);
+        Category catDrinkRoot = categoryRepository.save(Category.builder()
+                .name("Đồ uống & Giải khát")
+                .slug("do-uong-giai-khat")
+                .iconUrl("🥤")
+                .displayOrder(2)
+                .build());
 
-        Category catFashionRoot = getOrCreateCategory("Thời trang & Phong cách", "thoi-trang-phong-cach", "👕", null, 5);
+        Category catBeer = categoryRepository.save(Category.builder()
+                .name("Bia & Đồ uống có cồn")
+                .slug("bia-do-uong-co-con")
+                .parent(catDrinkRoot)
+                .iconUrl("🍺")
+                .displayOrder(1)
+                .build());
+
+        Category catSoftDrink = categoryRepository.save(Category.builder()
+                .name("Nước ngọt & Trà giải nhiệt")
+                .slug("nuoc-ngot-tra-giai-nhiet")
+                .parent(catDrinkRoot)
+                .iconUrl("🧃")
+                .displayOrder(2)
+                .build());
+
+        Category catApplianceRoot = categoryRepository.save(Category.builder()
+                .name("Thiết bị gia dụng")
+                .slug("thiet-bi-gia-dung")
+                .iconUrl("🍳")
+                .displayOrder(3)
+                .build());
+
+        Category catKitchen = categoryRepository.save(Category.builder()
+                .name("Nồi chiên & Bếp điện")
+                .slug("noi-chien-bep-dien")
+                .parent(catApplianceRoot)
+                .iconUrl("🥘")
+                .displayOrder(1)
+                .build());
+
+        Category catBlender = categoryRepository.save(Category.builder()
+                .name("Máy xay & Máy ép")
+                .slug("may-xay-may-ep")
+                .parent(catApplianceRoot)
+                .iconUrl("🍹")
+                .displayOrder(2)
+                .build());
+
+        Category catTechRoot = categoryRepository.save(Category.builder()
+                .name("Phụ kiện công nghệ")
+                .slug("phu-kien-cong-nghe")
+                .iconUrl("🎧")
+                .displayOrder(4)
+                .build());
+
+        Category catAudio = categoryRepository.save(Category.builder()
+                .name("Tai nghe & Loa")
+                .slug("tai-nghe-loa")
+                .parent(catTechRoot)
+                .iconUrl("🔊")
+                .displayOrder(1)
+                .build());
+
+        Category catPeripherals = categoryRepository.save(Category.builder()
+                .name("Bàn phím & Chuột")
+                .slug("ban-phim-chuot")
+                .parent(catTechRoot)
+                .iconUrl("⌨️")
+                .displayOrder(2)
+                .build());
+
+        Category catPower = categoryRepository.save(Category.builder()
+                .name("Pin sạc & Cáp dữ liệu")
+                .slug("pin-sac-cap-du-lieu")
+                .parent(catTechRoot)
+                .iconUrl("🔋")
+                .displayOrder(3)
+                .build());
+
+        Category catFashionRoot = categoryRepository.save(Category.builder()
+                .name("Thời trang & Phong cách")
+                .slug("thoi-trang-phong-cach")
+                .iconUrl("👕")
+                .displayOrder(5)
+                .build());
 
         // 4. Tạo Sản phẩm Thực phẩm Tươi sống (10 Sản phẩm)
         createProduct(shopFood, catVeggies,
@@ -425,10 +556,6 @@ public class DataInitializer implements CommandLineRunner {
                                BigDecimal stockQuantity, String unit, BigDecimal stepQuantity,
                                BigDecimal minOrderQuantity, StorageType storageType, String shelfLife,
                                String origin, String attributes, BigDecimal ratingAvg, int reviewCount) {
-
-        if (productRepository.findBySlug(slug).isPresent()) {
-            return;
-        }
 
         Product product = Product.builder()
                 .shop(shop)

@@ -35,3 +35,10 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
 
+# Chopee AI Copilot Configuration
+chopee:
+  ai:
+    provider: gemini
+    model: gemini-3.5-flash
+    api-key: ${GEMINI_API_KEY:YOUR_API_KEY_HERE}
+

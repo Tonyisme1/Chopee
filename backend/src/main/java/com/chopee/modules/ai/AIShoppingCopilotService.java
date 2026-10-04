@@ -7,11 +7,16 @@ import com.chopee.modules.ai.dto.AIChatResponse;
 import com.chopee.modules.catalog.ProductService;
 import com.chopee.modules.catalog.dto.ProductSummaryResponse;
 import com.chopee.repository.ProductRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -27,15 +32,23 @@ public class AIShoppingCopilotService {
 
     private final ProductRepository productRepository;
     private final ProductService productService;
+    private final ObjectMapper objectMapper;
 
     @Value("${chopee.ai.api-key:}")
     private String apiKey;
 
-    @Value("${chopee.ai.provider:builtin}")
+    @Value("${chopee.ai.provider:gemini}")
     private String provider;
 
-    @Value("${chopee.ai.model:gemini-1.5-flash}")
+    @Value("${chopee.ai.model:gemini-3.5-flash}")
     private String modelName;
+
+    private final RestClient restClient = RestClient.builder()
+            .requestFactory(new SimpleClientHttpRequestFactory() {{
+                setConnectTimeout(5000);
+                setReadTimeout(15000);
+            }})
+            .build();
 
     // Bộ từ điển ánh xạ món ăn sang nguyên liệu tươi sống tiêu biểu
     private static final Map<String, List<String>> RECIPE_INGREDIENTS_MAP = new LinkedHashMap<>();
@@ -76,10 +89,23 @@ public class AIShoppingCopilotService {
         // 4. Truy vấn sản phẩm thực tế từ Database
         List<ProductSummaryResponse> recommendedProducts = searchProductsFromDatabase(searchKeywords, budget);
 
-        // 5. Sinh nội dung tư vấn
-        String reply = generateAdviceReply(userMsg, intent, recommendedProducts, budget);
+        // 5. Xác định API key hiệu lực (ưu tiên BYOK từ request/header, sau đó là server key)
+        String effectiveApiKey = (request.getApiKey() != null && !request.getApiKey().isBlank())
+                ? request.getApiKey().trim()
+                : this.apiKey;
 
-        // 6. Gợi ý các câu hỏi tiếp theo để khách bấm nhanh
+        // 6. Sinh nội dung tư vấn: Ưu tiên gọi Google Gemini API với RAG context nếu có API key
+        String reply = null;
+        if (effectiveApiKey != null && !effectiveApiKey.isBlank()) {
+            reply = callGeminiAPI(effectiveApiKey, userMsg, intent, recommendedProducts, budget);
+        }
+
+        // Nếu Gemini không phản hồi hoặc không có API key -> dùng Fallback Engine nội bộ
+        if (reply == null || reply.isBlank()) {
+            reply = generateAdviceReply(userMsg, intent, recommendedProducts, budget);
+        }
+
+        // 7. Gợi ý các câu hỏi tiếp theo để khách bấm nhanh
         List<String> suggestedQuestions = generateSuggestedQuestions(intent, lowerMsg);
 
         return AIChatResponse.builder()
@@ -88,6 +114,64 @@ public class AIShoppingCopilotService {
                 .recommendedProducts(recommendedProducts)
                 .suggestedQuestions(suggestedQuestions)
                 .build();
+    }
+
+    private String callGeminiAPI(String apiKeyToUse, String userMsg, String intent, List<ProductSummaryResponse> products, BigDecimal budget) {
+        try {
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKeyToUse;
+
+            StringBuilder prompt = new StringBuilder();
+            prompt.append("Bạn là Trợ lý Mua sắm AI thông minh của sàn thương mại điện tử Chopee (Việt Nam).\n");
+            prompt.append("Hãy tư vấn cho người dùng với phong cách thân thiện, chu đáo, súc tích và nhiệt tình bằng tiếng Việt (sử dụng định dạng Markdown đẹp mắt).\n\n");
+
+            if (products != null && !products.isEmpty()) {
+                prompt.append("Các sản phẩm thực tế đang có sẵn trên sàn Chopee phù hợp với câu hỏi của khách:\n");
+                for (ProductSummaryResponse p : products) {
+                    prompt.append(String.format("- %s (Giá: %,d đ, Đơn vị: %s, Gian hàng: %s)\n",
+                            p.getName(), p.getSellingPrice().longValue(), p.getUnit(), p.getShopName()));
+                }
+                prompt.append("\nHãy hướng dẫn khách cách mua sắm các sản phẩm trên, nhấn mạnh rằng họ có thể bấm nút 'Thêm vào giỏ hàng' trực tiếp tại các thẻ sản phẩm bên dưới màn hình chat.\n");
+            }
+
+            if (budget != null) {
+                prompt.append(String.format("\nNgân sách của khách: %,d đ. Hãy lưu ý tối ưu chi tiêu trong ngân sách này.\n", budget.longValue()));
+            }
+
+            prompt.append("\nCâu hỏi của khách: ").append(userMsg);
+
+            Map<String, Object> part = Map.of("text", prompt.toString());
+            Map<String, Object> content = Map.of("parts", List.of(part));
+            Map<String, Object> generationConfig = Map.of(
+                    "temperature", 0.7,
+                    "maxOutputTokens", 2048
+            );
+            Map<String, Object> requestBody = Map.of(
+                    "contents", List.of(content),
+                    "generationConfig", generationConfig
+            );
+
+            String responseJson = restClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            if (responseJson != null && !responseJson.isBlank()) {
+                JsonNode root = objectMapper.readTree(responseJson);
+                JsonNode candidates = root.path("candidates");
+                if (candidates.isArray() && !candidates.isEmpty()) {
+                    JsonNode textNode = candidates.get(0).path("content").path("parts").get(0).path("text");
+                    if (!textNode.isMissingNode() && !textNode.asText().isBlank()) {
+                        return textNode.asText();
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Gọi Google Gemini API thất bại ({}), tự động kích hoạt bộ xử lý miền nội bộ: {}",
+                    ex.getClass().getSimpleName(), ex.getMessage());
+        }
+        return null;
     }
 
     private String detectIntent(String lowerMsg) {

@@ -20,18 +20,9 @@ public class AIController {
     private final AIShoppingCopilotService aiShoppingCopilotService;
 
     @PostMapping("/chat")
-    @Operation(summary = "Hỏi đáp thực đơn, tư vấn đồ gia dụng, săn deal và nhận thẻ sản phẩm từ AI Copilot (hỗ trợ BYOK header X-AI-API-Key)")
-    public ResponseEntity<ApiResponse<AIChatResponse>> chat(
-            @RequestHeader(value = "X-AI-API-Key", required = false) String headerApiKey,
-            @Valid @RequestBody AIChatRequest request) {
-        if ((request.getApiKey() == null || request.getApiKey().isBlank()) && headerApiKey != null && !headerApiKey.isBlank()) {
-            request.setApiKey(headerApiKey.trim());
-        }
+    @Operation(summary = "Hỏi đáp thực đơn, tư vấn đồ gia dụng, săn deal và nhận thẻ sản phẩm từ AI Copilot")
+    public ResponseEntity<ApiResponse<AIChatResponse>> chat(@Valid @RequestBody AIChatRequest request) {
         AIChatResponse response = aiShoppingCopilotService.chat(request);
         return ResponseEntity.ok(ApiResponse.success("Phản hồi thành công từ Trợ lý AI", response));
-    }
-
-    public ResponseEntity<ApiResponse<AIChatResponse>> chat(AIChatRequest request) {
-        return chat(null, request);
     }
 }

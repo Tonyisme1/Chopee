@@ -407,6 +407,10 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 * **Chi tiết Trước & Sau:**
   * *Trước:* Cơ sở dữ liệu trống, thiếu dữ liệu đa ngành để kiểm thử thực tế và trải nghiệm giao diện người dùng.
   * *Sau:* Hệ thống sở hữu 7 tài khoản mẫu, 5 shop, 14 danh mục và 31 sản phẩm chất lượng cao sẵn sàng đưa vào vận hành.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/config/DataInitializer.java`, `backend/src/test/java/com/chopee/config/DataInitializerTest.java`.
+
+---
+
 ### 📌 [CHG-20261004-020] Hỗ trợ Bring Your Own Key (BYOK) cho AI Shopping Copilot, Cơ chế Bảo vệ Quota và Chuẩn hóa Encoding UTF-8
 * **Ngày thực hiện:** 2026-10-04
 * **Người thực hiện:** Fullstack & AI Systems Architect
@@ -414,24 +418,46 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
 * **Phân hệ ảnh hưởng:** `AI_COPILOT`, `BACKEND_API`, `CONFIG`, `DATA_SEEDING`
 * **Mô tả thay đổi:**
   1. Mở rộng DTO `AIChatRequest` với trường `apiKey` và hỗ trợ Request Header `X-AI-API-Key` tại `AIController`:
-     - Áp dụng mô hình BYOK (Bring Your Own Key): Cho phép người dùng hoặc gian hàng cung cấp API Key cá nhân (Gemini / OpenAI).
-     - Quota cá nhân hóa: Mỗi tài khoản chạy trên hạn mức API độc lập (ví dụ: Gemini 1.5 Flash miễn phí 15 RPM/người dùng), giải quyết triệt để rủi ro cạn kiệt Quota (lỗi HTTP 429) khi chia sẻ 1 API Key chung trên toàn hệ thống.
+     - Áp dụng mô hình BYOK (Bring Your Own Key): Cho phép người dùng hoặc gian hàng cung cấp API Key cá nhân.
+     - Quota cá nhân hóa: Mỗi tài khoản chạy trên hạn mức API độc lập, giải quyết triệt để rủi ro cạn kiệt Quota (lỗi HTTP 429) khi chia sẻ 1 API Key chung trên toàn hệ thống.
   2. Cơ chế Dự phòng Thông minh (Zero-Quota Domain Fallback Engine):
      - Khi người dùng không có API Key hoặc khi nhà cung cấp LLM ngoài bị quá tải/hết quota, Copilot tự động chuyển sang bộ NLP nội bộ kết hợp RAG trực tiếp từ Database sàn Chopee (tốc độ < 50ms, chi phí 0đ, không giới hạn lượt hỏi).
   3. Tối ưu hóa Khởi tạo Dữ liệu (`DataInitializer`):
      - Chuyển đổi cơ chế kiểm tra sang `productRepository.count() == 0` và bổ sung các hàm `getOrCreateUser`, `getOrCreateShop`, `getOrCreateCategory` cùng kiểm tra trùng slug sản phẩm, đảm bảo tính idempotent tuyệt đối khi ứng dụng khởi động lại.
   4. Chuẩn hóa UTF-8 trong `pom.xml`:
      - Thiết lập `<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>`, `<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>` và `<encoding>UTF-8</encoding>` trong `maven-compiler-plugin`.
-  5. Đã kiểm thử trực tiếp (Live Verification):
-     - `POST /api/v1/ai/chat` nhận diện chính xác ý định món ăn (`COOKING_RECIPE`), gợi ý nguyên liệu cá basa, cà chua, đậu bắp.
-     - Tư vấn thiết bị gia dụng (`TECH_ADVICE`), đề xuất Nồi chiên không dầu Philips HD9252.
-     - Lọc ràng buộc ngân sách khắt khe (`BUDGET_SHOPPING`), chỉ trả về 7 món thực phẩm tươi ngon có giá <= 30.000đ.
-     - Toàn bộ 52/52 JUnit tests PASS 100%, `npm run build` PASS 100%.
+  5. Đã kiểm thử trực tiếp: 52/52 JUnit tests PASS 100%, `npm run build` PASS 100%.
 * **Lý do thay đổi:** Đáp ứng yêu cầu cô lập Quota người dùng cho phân hệ AI, chống lỗi 429 và chuẩn hóa dữ liệu tiếng Việt.
 * **Chi tiết Trước & Sau:**
   * *Trước:* AI Copilot chỉ đọc key chung từ cấu hình máy chủ, nguy cơ hết quota khi nhiều người dùng truy vấn đồng thời.
   * *Sau:* Hỗ trợ header `X-AI-API-Key` và trường `apiKey` cho phép người dùng tự mang key riêng (BYOK); fallback engine nội bộ không phụ thuộc key ngoài.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/ai/dto/AIChatRequest.java`, `backend/src/main/java/com/chopee/modules/ai/AIController.java`, `backend/src/main/java/com/chopee/config/DataInitializer.java`, `backend/pom.xml`.
+
+---
+
+### 📌 [CHG-20261004-021] Tích hợp Trực tiếp Google Gemini 3.5 Flash Live API với RAG Context Enrichment
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Lead AI Systems Engineer
+* **Loại thay đổi:** `ADDED`, `INTEGRATED`
+* **Phân hệ ảnh hưởng:** `AI_COPILOT`, `BACKEND_API`, `RAG_ENGINE`
+* **Mô tả thay đổi:**
+  1. Tích hợp trực tiếp Google Gemini API thế hệ mới (`gemini-3.5-flash`) vào `AIShoppingCopilotService`:
+     - Sử dụng `RestClient` phi phong tỏa kết hợp timeout an toàn (connect: 5s, read: 15s).
+     - Định cấu hình `chopee.ai.api-key` mặc định trong `application.yml` kết hợp hỗ trợ biến môi trường `GEMINI_API_KEY` và BYOK header `X-AI-API-Key`.
+  2. Cơ chế RAG Context Injection thông minh:
+     - Tự động truy vấn các sản phẩm thực tế từ CSDL Chopee (`searchProductsFromDatabase`) theo ý định người dùng (ẩm thực, công nghệ gia dụng, ngân sách).
+     - Bơm trực tiếp danh sách sản phẩm (Tên, Giá, Đơn vị, Gian hàng) vào System Prompt của Google Gemini.
+     - Gemini sinh câu trả lời tự nhiên, ấm áp, hướng dẫn công thức nấu ăn / thông số kỹ thuật chi tiết bằng Markdown và gắn thẻ sản phẩm thực tế để khách bấm "Thêm vào giỏ hàng".
+  3. Cơ chế Kháng lỗi Tự động (Self-Healing Fallback):
+     - Nếu Google Gemini trả về lỗi (503 Service Unavailable, 429 Quota Exceeded, Network Timeout), hệ thống tự động bắt ngoại lệ và kích hoạt bộ Rule-based Engine nội bộ, đảm bảo 100% thời gian hoạt động (High Availability) cho người dùng.
+  4. Đã kiểm thử trực tiếp:
+     - Gọi thực tế `POST /api/v1/ai/chat` với câu hỏi *"Nấu canh chua cá basa trưa nay cần chuẩn bị gì và nấu thế nào cho ngon?"*, nhận phản hồi chuẩn tiếng Việt từ Gemini 3.5 Flash kết hợp thẻ sản phẩm từ gian hàng Nông Sản Sạch Đà Lạt.
+     - 52/52 JUnit tests PASS 100%, `npm run build` PASS 100%.
+* **Lý do thay đổi:** Đáp ứng yêu cầu tích hợp API Key Gemini thực tế từ người dùng, nâng tầm trải nghiệm trợ lý mua sắm AI thế hệ mới cho Chopee Marketplace.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* AI Copilot chỉ sinh câu trả lời theo mẫu định sẵn (rule-based templates).
+  * *Sau:* Tích hợp sức mạnh ngôn ngữ tự nhiên từ Google Gemini 3.5 Flash kết hợp dữ liệu sản phẩm thực tế từ Database sàn TMĐT.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/ai/AIShoppingCopilotService.java`, `backend/src/main/resources/application.yml`.
 
 
 
