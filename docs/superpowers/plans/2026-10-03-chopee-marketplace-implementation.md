@@ -13,7 +13,7 @@
 ## Global Constraints
 - Java version: 17 LTS; Spring Boot 3.3.x; Maven 3.9+.
 - Node version: 20+; Package manager: npm.
-- Database: MySQL 8 (InnoDB, utf8mb4_unicode_ci); Port: 3306; DB name: `shopee_db`.
+- Database: MySQL 8 (InnoDB, utf8mb4_unicode_ci); Port: 3306; DB name: `chopee_db`.
 - Ports: Backend runs on `http://localhost:8080`, Frontend on `http://localhost:5173`.
 - Passwords must be hashed using BCrypt (`strength = 10`).
 - API envelope format: `ApiResponse<T>` with `success`, `message`, `data`, and `errors`.
@@ -48,7 +48,7 @@
 - Produces: Base running backend on `:8080` with Swagger UI at `/swagger-ui.html` and frontend on `:5173`.
 
 - [x] **Step 1: Create `docker-compose.yml` for local MySQL 8**
-  Define `mysql` service on port 3306 with database `shopee_db`, username `root`, password `root`, and persistent volume.
+  Define `mysql` service on port 3306 with database `chopee_db`, username `root`, password `root`, and persistent volume.
 
 - [x] **Step 2: Scaffold Spring Boot 3 Maven project in `backend/`**
   Add dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-validation`, `mysql-connector-j`, `jjwt-api`, `jjwt-impl`, `jjwt-jackson`, `lombok`, `springdoc-openapi-starter-webmvc-ui`.

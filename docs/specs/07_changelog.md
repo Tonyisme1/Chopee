@@ -177,3 +177,21 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Trước:* Các API mở tự do (`permitAll`), chưa có cơ chế cấp phát token JWT và phân quyền Buyer/Seller/Admin.
   * *Sau:* Toàn bộ các endpoint được bảo vệ nghiêm ngặt bằng JWT và RBAC; có API cho phép người dùng đăng ký, đăng nhập và tự nâng cấp lên Seller.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/security/`, `backend/src/main/java/com/chopee/modules/auth/`, `backend/src/main/java/com/chopee/config/SecurityConfig.java`, `backend/src/main/java/com/chopee/common/GlobalExceptionHandler.java`, `backend/src/test/java/com/chopee/modules/auth/AuthControllerTest.java`.
+
+---
+
+### 📌 [CHG-20261004-012] Đổi tên Database mặc định từ `shopee_db` thành `chopee_db`
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Fullstack Architect
+* **Loại thay đổi:** `CHANGED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `CONFIG`, `DOCKER`
+* **Mô tả thay đổi:** Chuẩn hóa tên cơ sở dữ liệu mặc định thành `chopee_db` đồng bộ với thương hiệu dự án Chopee:
+  1. `backend/src/main/resources/application.yml`: Thay đổi chuỗi JDBC kết nối mặc định thành `${DB_NAME:chopee_db}`.
+  2. `docker-compose.yml`: Cập nhật biến môi trường container MySQL `MYSQL_DATABASE: chopee_db`.
+  3. Cập nhật tài liệu thiết kế và kế hoạch triển khai đồng bộ tên CSDL `chopee_db`.
+* **Lý do thay đổi:** Đồng bộ nhận diện thương hiệu Chopee Marketplace và đáp ứng yêu cầu người dùng cấu hình CSDL `chopee_db` trên WampServer và Docker.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Tên database mặc định là `shopee_db`.
+  * *Sau:* Tên database mặc định là `chopee_db` trên cả môi trường Spring Boot và Docker Compose.
+* **Phạm vi tác động:** `backend/src/main/resources/application.yml`, `docker-compose.yml`, `docs/superpowers/specs/2026-10-03-shopee-marketplace-design.md`, `docs/superpowers/plans/2026-10-03-chopee-marketplace-implementation.md`.
+

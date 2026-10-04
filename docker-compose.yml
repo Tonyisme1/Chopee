@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: shopee_db
+      MYSQL_DATABASE: chopee_db
     ports:
       - "3306:3306"
     volumes:

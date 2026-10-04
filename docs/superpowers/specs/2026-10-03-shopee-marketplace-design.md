@@ -50,7 +50,7 @@ graph TD
     end
 
     subgraph Storage["Cơ Sở Dữ Liệu"]
-        MySQL[("MySQL 8.x Database: shopee_db")]
+        MySQL[("MySQL 8.x Database: chopee_db")]
     end
 
     Client --> Frontend
