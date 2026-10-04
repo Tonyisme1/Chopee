@@ -195,3 +195,32 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Tên database mặc định là `chopee_db` trên cả môi trường Spring Boot và Docker Compose.
 * **Phạm vi tác động:** `backend/src/main/resources/application.yml`, `docker-compose.yml`, `docs/superpowers/specs/2026-10-03-shopee-marketplace-design.md`, `docs/superpowers/plans/2026-10-03-chopee-marketplace-implementation.md`.
 
+---
+
+### 📌 [CHG-20261004-013] Triển khai Task 4: Danh mục Đa ngành hàng, Tra cứu & Tìm kiếm Sản phẩm Động (Product Catalog & Dynamic Search)
+* **Ngày thực hiện:** 2026-10-04
+* **Người thực hiện:** Backend Architect & Lead Developer
+* **Loại thay đổi:** `ADDED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `CATALOG`, `SEARCH`
+* **Mô tả thay đổi:** Xây dựng hoàn chỉnh phân hệ Catalog và Tìm kiếm sản phẩm phục vụ Chợ trực tuyến Chopee:
+  1. Các DTO chuẩn hóa: `CategoryTreeResponse`, `ProductSearchCriteria`, `ProductSummaryResponse`, `ProductDetailResponse`, `ProductImageResponse`, `ProductVariantResponse`, `ShopPublicResponse`, `PageResponse<T>`.
+  2. Dịch vụ phân cấp danh mục `CategoryService`: Lấy cây danh mục cha - con (`getCategoryTree`), tìm kiếm đệ quy ID danh mục cha và tất cả danh mục con (`getCategoryAndDescendantIds`).
+  3. Tìm kiếm & lọc đa tiêu chí bằng JPA Specification `ProductSpecification` và mở rộng `JpaSpecificationExecutor` trong `ProductRepository`:
+     - Chỉ tìm sản phẩm đang `ACTIVE`.
+     - Tìm kiếm từ khóa không phân biệt hoa thường theo tên, mô tả, nguồn gốc xuất xứ, tên shop.
+     - Lọc theo cây danh mục, khoảng giá (`minPrice` - `maxPrice`), điều kiện bảo quản thực phẩm (`StorageType`), đơn vị tính lẻ (`kg`, `chiếc`...), điểm đánh giá tối thiểu và lọc theo Shop.
+     - Sắp xếp linh hoạt: mới nhất (`newest`), giá tăng dần (`price_asc`), giá giảm dần (`price_desc`), bán chạy nhất (`sales`), đánh giá cao nhất (`rating`).
+  4. Bộ điều khiển REST `CatalogController` tại `/api/v1/public`:
+     - `GET /api/v1/public/categories`: Lấy cây danh mục sản phẩm.
+     - `GET /api/v1/public/categories/{id}`: Chi tiết danh mục theo ID.
+     - `GET /api/v1/public/products`: Tra cứu, lọc sản phẩm phân trang với các bộ lọc chuyên sâu.
+     - `GET /api/v1/public/products/{id}` & `/slug/{slug}`: Chi tiết sản phẩm kèm thông tin Shop, thuộc tính động JSON (VietGAP, OCOP, công suất), thư viện ảnh và danh sách biến thể.
+     - `GET /api/v1/public/shops/{id}` & `/slug/{slug}`: Hồ sơ Shop công khai và thống kê tổng số sản phẩm mở bán.
+  5. Bộ kiểm thử tích hợp `CatalogControllerTest` với 9 ca kiểm thử toàn diện đạt 100% PASS (Tổng 21/21 backend tests pass).
+* **Lý do thay đổi:** Hoàn thành Task 4 theo kế hoạch triển khai, cung cấp đầy đủ các API tìm kiếm và duyệt danh mục cho người mua trên Chopee.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Chưa có API lấy danh mục hay tìm kiếm sản phẩm cho khách hàng.
+  * *Sau:* Có đầy đủ 7 endpoint public phục vụ duyệt cây danh mục, tìm kiếm lọc thực phẩm tươi sống/đông lạnh và trang chi tiết sản phẩm.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/catalog/`, `backend/src/main/java/com/chopee/common/dto/PageResponse.java`, `backend/src/main/java/com/chopee/repository/ProductRepository.java`, `backend/src/test/java/com/chopee/modules/catalog/CatalogControllerTest.java`.
+
+

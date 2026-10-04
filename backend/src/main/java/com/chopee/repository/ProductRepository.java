@@ -12,13 +12,21 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     Optional<Product> findBySlug(String slug);
+
+    Optional<Product> findByIdAndStatus(Long id, ProductStatus status);
+
+    Optional<Product> findBySlugAndStatus(String slug, ProductStatus status);
+
+    long countByShopIdAndStatus(Long shopId, ProductStatus status);
 
     Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 

@@ -149,22 +149,22 @@
 **Interfaces:**
 - Produces: `GET /api/v1/public/categories`, `GET /api/v1/public/products`, `GET /api/v1/public/products/{id}`, `GET /api/v1/public/shops/{id}`.
 
-- [ ] **Step 1: Write tests for catalog browsing and filtering**
+- [x] **Step 1: Write tests for catalog browsing and filtering**
   Test category tree retrieval, product search by keyword, filter by storage type (`FRESH`), price range, and page sorting.
 
-- [ ] **Step 2: Implement category hierarchy service**
+- [x] **Step 2: Implement category hierarchy service**
   Map parent-child category tree for fast display on navigation menus.
 
-- [ ] **Step 3: Implement product search specification with JPA Criteria / QueryDSL**
+- [x] **Step 3: Implement product search specification with JPA Criteria / QueryDSL**
   Support dynamic filter criteria: `keyword`, `categoryId`, `minPrice`, `maxPrice`, `storageType`, `unit`, `rating`.
 
-- [ ] **Step 4: Implement `CatalogController` with OpenAPI annotations**
+- [x] **Step 4: Implement `CatalogController` with OpenAPI annotations**
   Expose endpoints with documentation and pagination metadata (`page`, `size`, `totalElements`).
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
   Run: `mvn test -Dtest=CatalogControllerTest`. Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git add backend/ && git commit -m "feat: implement category and product catalog with multi-industry search filters"`
 
 ---
