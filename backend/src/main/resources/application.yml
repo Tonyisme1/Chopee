@@ -6,7 +6,7 @@ spring:
     name: chopee-backend
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:chopee_db}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:chopee_db}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull
     username: ${DB_USER:root}
     password: ${DB_PASS:}
     driver-class-name: com.mysql.cj.jdbc.Driver
