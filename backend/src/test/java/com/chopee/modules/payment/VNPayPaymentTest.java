@@ -8,11 +8,7 @@ import com.chopee.entity.enums.*;
 import com.chopee.modules.payment.dto.CreatePaymentRequest;
 import com.chopee.modules.payment.dto.VNPayIpnResponse;
 import com.chopee.modules.payment.dto.VNPayPaymentResponse;
-import com.chopee.repository.OrderRepository;
-import com.chopee.repository.OrderStatusHistoryRepository;
-import com.chopee.repository.PaymentRepository;
-import com.chopee.repository.ShopRepository;
-import com.chopee.repository.UserRepository;
+import com.chopee.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,15 +49,23 @@ class VNPayPaymentTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private VoucherRepository voucherRepository;
+
     private User buyer;
     private Shop shopA;
     private Shop shopB;
 
     @BeforeEach
     void setUp() {
+        reviewRepository.deleteAll();
         paymentRepository.deleteAll();
         orderStatusHistoryRepository.deleteAll();
         orderRepository.deleteAll();
+        voucherRepository.deleteAll();
         shopRepository.deleteAll();
         userRepository.deleteAll();
 

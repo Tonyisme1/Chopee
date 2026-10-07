@@ -557,6 +557,44 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Có hệ thống Covering Index đầy đủ, tìm kiếm N-gram tiếng Việt tối ưu, có thủ tục dọn dẹp định kỳ và file cấu hình máy chủ MySQL chuẩn doanh nghiệp.
 * **Phạm vi tác động:** `backend/src/main/resources/db/chopee_schema_full.sql`, `backend/src/main/resources/db/my_production.cnf`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
 
+---
+
+## [CHG-20261007-005] - Hoàn thiện Hệ thống API Backend: Sổ Địa Chỉ, Đánh Giá Sản Phẩm & Voucher Khuyến Mãi
+
+* **Mã thay đổi:** `CHG-20261007-005`
+* **Ngày thực hiện:** 07/10/2026
+* **Người thực hiện:** Antigravity AI Assistant & Engineering Team
+* **Loại thay đổi:** Feature / Architecture / API Expansion
+* **Thành phần tác động:** `backend` (Address, Review, Voucher Modules, DataInitializer, Security & Testing)
+* **Mô tả chi tiết:**
+  1. **Phân hệ Sổ Địa Chỉ Nhận Hàng (FR-AUTH-04):**
+     - Bổ sung `AddressController` (`/api/v1/buyer/addresses`) và `AddressService`.
+     - Hỗ trợ thêm mới địa chỉ, xem danh sách địa chỉ sắp xếp mặc định lên đầu, đặt địa chỉ mặc định và xóa địa chỉ với cơ chế tự động chuyển mặc định.
+  2. **Phân hệ Đánh Giá & Phản Hồi Sản Phẩm (FR-PROD-03):**
+     - Bổ sung `ReviewController` và `ReviewService`.
+     - `GET /api/v1/public/products/{productId}/reviews`: Xem đánh giá công khai kèm phân trang.
+     - `POST /api/v1/buyer/reviews`: Người mua gửi đánh giá 1-5 sao kèm hình ảnh cho món hàng đã giao thành công (`DELIVERED`), tự động tính lại điểm `ratingAvg` và `reviewCount` của sản phẩm.
+     - `GET /api/v1/seller/reviews`: Gian hàng xem danh sách đánh giá sản phẩm của shop.
+     - `PUT /api/v1/seller/reviews/{id}/reply`: Gian hàng phản hồi đánh giá khách hàng với bảo vệ IDOR nghiêm ngặt.
+  3. **Phân hệ Mã Giảm Giá & Khuyến Mãi (FR-PAY-03):**
+     - Bổ sung `VoucherController` và `VoucherService`.
+     - `GET /api/v1/public/vouchers`: Tra cứu danh sách voucher toàn sàn Chopee đang có hiệu lực.
+     - `GET /api/v1/public/shops/{shopId}/vouchers`: Tra cứu voucher riêng của từng Shop.
+     - `GET /api/v1/public/vouchers/validate`: API công khai kiểm tra tính hợp lệ và tính số tiền giảm giá tức thì.
+     - `GET /api/v1/seller/vouchers` & `POST /api/v1/seller/vouchers`: Kênh người bán quản lý và tạo voucher riêng của shop.
+     - `POST /api/v1/admin/vouchers`: Quản trị viên sàn tạo voucher toàn sàn.
+  4. **Nâng Cấp Dữ Liệu Khởi Tạo Mẫu (`DataInitializer`):**
+     - Tự động gieo mầm các mã giảm giá thực tế (`CHOPEE10K`, `FREESHIPCHO`, `DALATFARM20`, `TECHSALE50`) và địa chỉ nhận hàng mẫu.
+  5. **Bảo Đảm Chất Lượng (Quality Gates):**
+     - Bổ sung bộ kiểm thử tự động `AddressControllerTest`, `ReviewControllerTest`, `VoucherControllerTest`.
+     - 60/60 bài kiểm thử backend (`mvn test`) vượt qua thành công 100%.
+* **Lý do thay đổi:** Đồng bộ đầy đủ 100% các yêu cầu chức năng (FR-AUTH đến FR-AI) thành các endpoint RESTful chuẩn xác, sẵn sàng khởi chạy ứng dụng kết nối MySQL WAMP để người dùng kiểm thử trực tiếp.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Các entity `Review`, `Voucher`, `UserAddress` đã có trong database nhưng chưa có tầng Controller & Service RESTful tương ứng.
+  * *Sau:* Hệ thống API hoàn chỉnh, bảo mật phân quyền Role rõ ràng, tích hợp Swagger OpenAPI UI chi tiết.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/**`, `backend/src/test/java/com/chopee/**`, `docs/specs/07_changelog.md`.
+
+
 
 
 

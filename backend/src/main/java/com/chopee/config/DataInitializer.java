@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,10 +24,16 @@ public class DataInitializer implements CommandLineRunner {
     private final ShopRepository shopRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final VoucherRepository voucherRepository;
+    private final UserAddressRepository userAddressRepository;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.core.env.Environment environment;
 
     @Override
     public void run(String... args) {
+        if (java.util.Arrays.asList(environment.getActiveProfiles()).contains("test")) {
+            return;
+        }
         if (userRepository.count() == 0) {
             log.info("Khởi tạo dữ liệu mẫu sàn Chopee Marketplace...");
             seedData();
@@ -34,6 +41,8 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("Cơ sở dữ liệu đã có dữ liệu, bỏ qua bước khởi tạo mẫu.");
         }
+        seedVouchersIfEmpty();
+        seedAddressesIfEmpty();
     }
 
     @Transactional
@@ -593,6 +602,103 @@ public class DataInitializer implements CommandLineRunner {
         product.setVariants(variants);
 
         productRepository.save(product);
+    }
+
+    @Transactional
+    public void seedVouchersIfEmpty() {
+        if (voucherRepository.count() == 0) {
+            log.info("Khởi tạo mã giảm giá mẫu (Vouchers)...");
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime endDate = now.plusMonths(6);
+
+            // Voucher sàn
+            voucherRepository.save(Voucher.builder()
+                    .code("CHOPEE10K")
+                    .discountType(DiscountType.FIXED_AMOUNT)
+                    .discountValue(new BigDecimal("10000"))
+                    .minOrderAmount(new BigDecimal("50000"))
+                    .usageLimit(1000)
+                    .usedCount(5)
+                    .startDate(now.minusDays(1))
+                    .endDate(endDate)
+                    .isDeleted(false)
+                    .build());
+
+            voucherRepository.save(Voucher.builder()
+                    .code("FREESHIPCHO")
+                    .discountType(DiscountType.FIXED_AMOUNT)
+                    .discountValue(new BigDecimal("15000"))
+                    .minOrderAmount(new BigDecimal("100000"))
+                    .usageLimit(2000)
+                    .usedCount(12)
+                    .startDate(now.minusDays(1))
+                    .endDate(endDate)
+                    .isDeleted(false)
+                    .build());
+
+            // Voucher của shop Đà Lạt Farm
+            shopRepository.findBySlug("nong-san-sach-da-lat").ifPresent(shop -> {
+                voucherRepository.save(Voucher.builder()
+                        .code("DALATFARM20")
+                        .shop(shop)
+                        .discountType(DiscountType.PERCENT)
+                        .discountValue(new BigDecimal("20"))
+                        .minOrderAmount(new BigDecimal("150000"))
+                        .maxDiscountAmount(new BigDecimal("30000"))
+                        .usageLimit(500)
+                        .usedCount(8)
+                        .startDate(now.minusDays(1))
+                        .endDate(endDate)
+                        .isDeleted(false)
+                        .build());
+            });
+
+            // Voucher của shop TechZone
+            shopRepository.findBySlug("techzone-official-store").ifPresent(shop -> {
+                voucherRepository.save(Voucher.builder()
+                        .code("TECHSALE50")
+                        .shop(shop)
+                        .discountType(DiscountType.FIXED_AMOUNT)
+                        .discountValue(new BigDecimal("50000"))
+                        .minOrderAmount(new BigDecimal("300000"))
+                        .usageLimit(200)
+                        .usedCount(2)
+                        .startDate(now.minusDays(1))
+                        .endDate(endDate)
+                        .isDeleted(false)
+                        .build());
+            });
+            log.info("Khởi tạo mã giảm giá mẫu thành công!");
+        }
+    }
+
+    @Transactional
+    public void seedAddressesIfEmpty() {
+        if (userAddressRepository.count() == 0) {
+            userRepository.findByUsername("buyer1").ifPresent(buyer -> {
+                userAddressRepository.save(UserAddress.builder()
+                        .user(buyer)
+                        .receiverName("Nguyễn Mua Sắm")
+                        .phone("0987654321")
+                        .province("TP. Hồ Chí Minh")
+                        .district("Quận 1")
+                        .ward("Phường Bến Nghé")
+                        .detailAddress("123 Lê Lợi")
+                        .isDefault(true)
+                        .build());
+
+                userAddressRepository.save(UserAddress.builder()
+                        .user(buyer)
+                        .receiverName("Nguyễn Mua Sắm (Cơ quan)")
+                        .phone("0987654321")
+                        .province("TP. Hồ Chí Minh")
+                        .district("Quận Bình Thạnh")
+                        .ward("Phường 22")
+                        .detailAddress("Tòa nhà Landmark 81, 720A Điện Biên Phủ")
+                        .isDefault(false)
+                        .build());
+            });
+        }
     }
 }
 

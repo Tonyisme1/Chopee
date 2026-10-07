@@ -49,6 +49,12 @@ class DataInitializerTest {
     private OrderStatusHistoryRepository orderStatusHistoryRepository;
 
     @Autowired
+    private VoucherRepository voucherRepository;
+
+    @Autowired
+    private UserAddressRepository userAddressRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
@@ -56,9 +62,11 @@ class DataInitializerTest {
         orderStatusHistoryRepository.deleteAll();
         orderItemRepository.deleteAll();
         orderRepository.deleteAll();
+        voucherRepository.deleteAll();
         productRepository.deleteAll();
         categoryRepository.deleteAll();
         shopRepository.deleteAll();
+        userAddressRepository.deleteAll();
         userRepository.deleteAll();
     }
 
