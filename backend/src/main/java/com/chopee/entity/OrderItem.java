@@ -35,6 +35,9 @@ public class OrderItem {
     @Column(nullable = false, length = 255)
     private String productName;
 
+    @Column(length = 100)
+    private String variantName;
+
     @Column(nullable = false, length = 30)
     private String unit;
 

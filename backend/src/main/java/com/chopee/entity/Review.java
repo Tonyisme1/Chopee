@@ -44,6 +44,12 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String shopReply;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    private LocalDateTime deletedAt;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

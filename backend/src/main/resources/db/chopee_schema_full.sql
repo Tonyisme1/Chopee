@@ -1,7 +1,7 @@
 -- ==============================================================================================
--- CHOPEE MARKETPLACE - FULL PRODUCTION DATABASE SCHEMA & PROCEDURAL DEFINITIONS
+-- CHOPEE MARKETPLACE - FULL PRODUCTION DATABASE SCHEMA & PROCEDURAL DEFINITIONS (ENTERPRISE 24-TABLE ARCHITECTURE)
 -- Engine: MySQL 8.0+ | Charset: utf8mb4 | Collation: utf8mb4_unicode_ci
--- Architecture: Modular Monolith | Separation: Multi-Vendor Marketplace with Dynamic Specifications
+-- Architecture: Multi-Vendor Marketplace with 3-Tier Data Lifecycle, Soft Deletes, Escrow Wallets, and Inventory Audits
 -- ==============================================================================================
 
 SET NAMES utf8mb4;
@@ -20,10 +20,13 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url VARCHAR(255) NULL,
     role ENUM('ROLE_BUYER', 'ROLE_SELLER', 'ROLE_ADMIN') NOT NULL DEFAULT 'ROLE_BUYER',
     status ENUM('ACTIVE', 'BLOCKED') NOT NULL DEFAULT 'ACTIVE',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_role (role),
-    INDEX idx_users_status (status)
+    INDEX idx_users_status (status),
+    INDEX idx_users_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
@@ -60,16 +63,34 @@ CREATE TABLE IF NOT EXISTS shops (
     shop_type ENUM('GENERAL', 'FOOD_FRESH', 'OFFICIAL_MALL') NOT NULL DEFAULT 'GENERAL',
     status ENUM('PENDING', 'APPROVED', 'REJECTED', 'LOCKED') NOT NULL DEFAULT 'APPROVED',
     rating DECIMAL(2,1) NOT NULL DEFAULT 5.0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_shops_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
     INDEX idx_shops_status (status),
     INDEX idx_shops_slug (slug),
-    INDEX idx_shops_type (shop_type)
+    INDEX idx_shops_type (shop_type),
+    INDEX idx_shops_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 4. TABLE: categories (Cây danh mục phân cấp cha - con: Gốc -> Nhánh -> Ngọn)
+-- 4. TABLE: brands (Thương hiệu chính hãng toàn sàn)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS brands (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    slug VARCHAR(150) NOT NULL UNIQUE,
+    logo_url VARCHAR(255) NULL,
+    description TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_brands_slug (slug),
+    INDEX idx_brands_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 5. TABLE: categories (Cây danh mục phân cấp cha - con: Gốc -> Nhánh -> Ngọn)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS categories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -78,19 +99,38 @@ CREATE TABLE IF NOT EXISTS categories (
     icon_url VARCHAR(255) NULL,
     parent_id BIGINT NULL,
     display_order INT NOT NULL DEFAULT 0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL,
     INDEX idx_categories_parent (parent_id),
-    INDEX idx_categories_slug (slug)
+    INDEX idx_categories_slug (slug),
+    INDEX idx_categories_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 5. TABLE: products (Mặt hàng đa ngành & Chợ tươi sống - "Gọn từ gốc")
+-- 6. TABLE: category_attributes (Đặc tả thông số chuẩn động theo từng ngành hàng - "Gọn từ gốc")
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS category_attributes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    category_id BIGINT NOT NULL,
+    attribute_name VARCHAR(100) NOT NULL,
+    attribute_type ENUM('TEXT', 'SELECT', 'NUMBER', 'BOOLEAN') NOT NULL DEFAULT 'TEXT',
+    options_json TEXT NULL,
+    is_required BOOLEAN NOT NULL DEFAULT FALSE,
+    display_order INT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_cat_attr_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    INDEX idx_cat_attr_category (category_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 7. TABLE: products (Mặt hàng đa ngành & Chợ tươi sống)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     shop_id BIGINT NOT NULL,
     category_id BIGINT NOT NULL,
+    brand_id BIGINT NULL,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
     description TEXT NULL,
@@ -111,19 +151,24 @@ CREATE TABLE IF NOT EXISTS products (
     rating_avg DECIMAL(2,1) NOT NULL DEFAULT 5.0,
     review_count INT NOT NULL DEFAULT 0,
     status ENUM('ACTIVE', 'INACTIVE', 'OUT_OF_STOCK') NOT NULL DEFAULT 'ACTIVE',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE RESTRICT,
     CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_products_brand FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL,
     INDEX idx_products_shop (shop_id),
     INDEX idx_products_category (category_id),
+    INDEX idx_products_brand (brand_id),
     INDEX idx_products_status_price (status, selling_price),
+    INDEX idx_products_is_deleted (is_deleted),
     INDEX idx_products_storage_type (storage_type),
     FULLTEXT INDEX ft_products_search (name, description)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 6. TABLE: product_images (Thư viện hình ảnh sản phẩm)
+-- 8. TABLE: product_images (Thư viện hình ảnh sản phẩm)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS product_images (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -135,7 +180,7 @@ CREATE TABLE IF NOT EXISTS product_images (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 7. TABLE: product_variants (Biến thể phân loại: Size, Trọng lượng gói, Màu sắc)
+-- 9. TABLE: product_variants (Biến thể phân loại: Size, Trọng lượng gói, Màu sắc)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS product_variants (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -143,12 +188,14 @@ CREATE TABLE IF NOT EXISTS product_variants (
     variant_name VARCHAR(100) NOT NULL,
     price DECIMAL(12,2) NOT NULL,
     stock_quantity DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_product_variants_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_product_variants_product (product_id)
+    INDEX idx_product_variants_product (product_id),
+    INDEX idx_product_variants_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 8. TABLE: cart_items (Giỏ hàng người mua)
+-- 10. TABLE: cart_items (Giỏ hàng người mua)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS cart_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -165,7 +212,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 9. TABLE: orders (Đơn hàng con phân tách theo từng Shop - Đảm bảo Multi-Vendor)
+-- 11. TABLE: orders (Đơn hàng con phân tách theo từng Shop - Sẵn sàng phân tầng Hot/Warm/Cold)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -186,6 +233,7 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method ENUM('COD', 'VNPAY') NOT NULL DEFAULT 'COD',
     payment_status ENUM('UNPAID', 'PAID', 'FAILED', 'REFUNDED') NOT NULL DEFAULT 'UNPAID',
     status ENUM('PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+    storage_tier ENUM('HOT', 'WARM', 'COLD') NOT NULL DEFAULT 'HOT',
     note VARCHAR(255) NULL,
     cancelled_by ENUM('BUYER', 'SELLER', 'ADMIN', 'SYSTEM') NULL,
     cancellation_reason VARCHAR(255) NULL,
@@ -196,11 +244,12 @@ CREATE TABLE IF NOT EXISTS orders (
     INDEX idx_orders_group_code (group_order_code),
     INDEX idx_orders_user (user_id),
     INDEX idx_orders_shop (shop_id),
-    INDEX idx_orders_status (status)
+    INDEX idx_orders_status (status),
+    INDEX idx_orders_tier_created (storage_tier, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 10. TABLE: order_items (Chi tiết món hàng đã chốt trong đơn)
+-- 12. TABLE: order_items (Chi tiết món hàng đã chốt trong đơn - Snapshot tên & biến thể)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS order_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -220,7 +269,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 11. TABLE: order_status_history (Nhật ký hành trình đơn hàng - Audit Trail)
+-- 13. TABLE: order_status_history (Nhật ký hành trình đơn hàng - Audit Trail)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS order_status_history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -231,11 +280,12 @@ CREATE TABLE IF NOT EXISTS order_status_history (
     note VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    INDEX idx_order_status_history_order (order_id)
+    INDEX idx_order_status_history_order (order_id),
+    INDEX idx_order_status_history_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 12. TABLE: payments (Lịch sử thanh toán giao dịch VNPay)
+-- 14. TABLE: payments (Lịch sử thanh toán giao dịch VNPay)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -246,11 +296,12 @@ CREATE TABLE IF NOT EXISTS payments (
     transaction_reference VARCHAR(100) NULL,
     bank_code VARCHAR(50) NULL,
     pay_date DATETIME NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_payments_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 13. TABLE: vouchers (Mã giảm giá toàn sàn & riêng từng shop)
+-- 15. TABLE: vouchers (Mã giảm giá toàn sàn & riêng từng shop)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS vouchers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -266,14 +317,17 @@ CREATE TABLE IF NOT EXISTS vouchers (
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_vouchers_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE,
     INDEX idx_vouchers_code (code),
-    INDEX idx_vouchers_shop (shop_id)
+    INDEX idx_vouchers_shop (shop_id),
+    INDEX idx_vouchers_active (is_active, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
--- 14. TABLE: reviews (Đánh giá sao & nhận xét trải nghiệm kèm ảnh thực tế)
+-- 16. TABLE: reviews (Đánh giá sao & nhận xét trải nghiệm kèm ảnh thực tế)
 -- ----------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS reviews (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -284,23 +338,175 @@ CREATE TABLE IF NOT EXISTS reviews (
     comment TEXT NULL,
     images_json TEXT NULL,
     shop_reply TEXT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_reviews_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_reviews_order_item FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
     INDEX idx_reviews_product (product_id),
-    INDEX idx_reviews_user (user_id)
+    INDEX idx_reviews_user (user_id),
+    INDEX idx_reviews_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 17. TABLE: shop_wallets (Ví tiền gian hàng - Quản lý dòng tiền ký quỹ Escrow Multi-Vendor)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS shop_wallets (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    shop_id BIGINT NOT NULL UNIQUE,
+    available_balance DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    pending_balance DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    locked_balance DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_shop_wallets_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE RESTRICT,
+    INDEX idx_shop_wallets_shop (shop_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 18. TABLE: wallet_transactions (Lịch sử biến động số dư ví người bán)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    wallet_id BIGINT NOT NULL,
+    order_id BIGINT NULL,
+    transaction_type ENUM('ORDER_PAYOUT', 'COMMISSION_FEE', 'WITHDRAWAL', 'REFUND_DEDUCT', 'ADJUSTMENT') NOT NULL,
+    amount DECIMAL(14,2) NOT NULL,
+    balance_after DECIMAL(14,2) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_wallet_tx_wallet FOREIGN KEY (wallet_id) REFERENCES shop_wallets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_wallet_tx_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+    INDEX idx_wallet_tx_wallet (wallet_id),
+    INDEX idx_wallet_tx_order (order_id),
+    INDEX idx_wallet_tx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 19. TABLE: payout_requests (Yêu cầu rút tiền từ Ví về Tài khoản ngân hàng)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS payout_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    wallet_id BIGINT NOT NULL,
+    amount DECIMAL(14,2) NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    account_holder VARCHAR(100) NOT NULL,
+    status ENUM('PENDING', 'APPROVED', 'REJECTED', 'TRANSFERRED') NOT NULL DEFAULT 'PENDING',
+    admin_note VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payout_requests_wallet FOREIGN KEY (wallet_id) REFERENCES shop_wallets(id) ON DELETE RESTRICT,
+    INDEX idx_payout_requests_wallet (wallet_id),
+    INDEX idx_payout_requests_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 20. TABLE: refund_requests (Yêu cầu Đổi trả / Hoàn tiền & Tranh chấp người mua - người bán)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS refund_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    reason ENUM('DAMAGED_GOODS', 'EXPIRED_FOOD', 'WRONG_ITEM', 'NOT_RECEIVED', 'OTHER') NOT NULL,
+    description TEXT NOT NULL,
+    evidence_images_json TEXT NULL,
+    refund_amount DECIMAL(12,2) NOT NULL,
+    status ENUM('PENDING_SHOP', 'SHOP_REJECTED', 'ADMIN_MEDIATION', 'APPROVED', 'REFUNDED', 'CANCELLED') NOT NULL DEFAULT 'PENDING_SHOP',
+    shop_response TEXT NULL,
+    admin_note TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_refund_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_refund_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_refund_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE RESTRICT,
+    INDEX idx_refund_order (order_id),
+    INDEX idx_refund_shop (shop_id),
+    INDEX idx_refund_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 21. TABLE: inventory_logs (Thẻ kho - Nhật ký kiểm kê biến động xuất nhập tồn)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS inventory_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    variant_id BIGINT NULL,
+    change_type ENUM('IMPORT', 'ORDER_SALE', 'ORDER_CANCEL_RESTOCK', 'RETURN_RESTOCK', 'DAMAGE_LOSS', 'MANUAL_CORRECTION') NOT NULL,
+    quantity_before DECIMAL(10,2) NOT NULL,
+    quantity_change DECIMAL(10,2) NOT NULL,
+    quantity_after DECIMAL(10,2) NOT NULL,
+    reference_id VARCHAR(50) NULL,
+    note VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_inv_logs_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_inv_logs_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
+    INDEX idx_inv_logs_product (product_id),
+    INDEX idx_inv_logs_variant (variant_id),
+    INDEX idx_inv_logs_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 22. TABLE: notifications (Trung tâm thông báo tài khoản & đơn hàng)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    notification_type ENUM('ORDER', 'PROMOTION', 'WALLET', 'SYSTEM') NOT NULL DEFAULT 'ORDER',
+    reference_id VARCHAR(100) NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_notifications_user (user_id),
+    INDEX idx_notifications_read (is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 23. TABLE: flash_sales (Chiến dịch Khuyến mãi Giờ vàng / Flash Sale)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS flash_sales (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    status ENUM('UPCOMING', 'ACTIVE', 'ENDED') NOT NULL DEFAULT 'UPCOMING',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_flash_sales_time (start_time, end_time),
+    INDEX idx_flash_sales_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------------------------
+-- 24. TABLE: flash_sale_items (Sản phẩm tham gia Flash Sale với giá và hạn ngạch riêng)
+-- ----------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS flash_sale_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    flash_sale_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    variant_id BIGINT NULL,
+    flash_sale_price DECIMAL(12,2) NOT NULL,
+    stock_limit DECIMAL(10,2) NOT NULL,
+    sold_count DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    sort_order INT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_fsi_flash_sale FOREIGN KEY (flash_sale_id) REFERENCES flash_sales(id) ON DELETE CASCADE,
+    CONSTRAINT fk_fsi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_fsi_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
+    INDEX idx_fsi_sale (flash_sale_id),
+    INDEX idx_fsi_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==============================================================================================
--- 15. DATABASE TRIGGERS (BỘ KÍCH HOẠT TỰ ĐỘNG HÓA TẦNG DB)
+-- 25. DATABASE TRIGGERS (BỘ KÍCH HOẠT TỰ ĐỘNG HÓA TẦNG DB)
 -- ==============================================================================================
 
 DELIMITER $$
 
--- Trigger 1: Chống âm kho tuyệt đối (Zero/Negative Stock Guard)
+-- Trigger 1: Chống âm kho tuyệt đối trên sản phẩm đơn lẻ (Zero/Negative Stock Guard)
 DROP TRIGGER IF EXISTS trg_prevent_negative_stock$$
 CREATE TRIGGER trg_prevent_negative_stock
 BEFORE UPDATE ON products
@@ -308,11 +514,23 @@ FOR EACH ROW
 BEGIN
     IF NEW.stock_quantity < 0 THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'LỖI CSDL: Số lượng tồn kho không thể nhỏ hơn 0! Giao dịch bị hủy.';
+        SET MESSAGE_TEXT = 'LỖI CSDL: Số lượng tồn kho sản phẩm không thể nhỏ hơn 0! Giao dịch bị hủy.';
     END IF;
 END$$
 
--- Trigger 2: Tự động ghi vết lịch sử khi đổi trạng thái đơn hàng (Audit Trail)
+-- Trigger 2: Chống âm kho tuyệt đối trên biến thể phân loại (Variant Stock Guard)
+DROP TRIGGER IF EXISTS trg_prevent_negative_variant_stock$$
+CREATE TRIGGER trg_prevent_negative_variant_stock
+BEFORE UPDATE ON product_variants
+FOR EACH ROW
+BEGIN
+    IF NEW.stock_quantity < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'LỖI CSDL: Số lượng tồn kho phân loại biến thể không thể nhỏ hơn 0! Giao dịch bị hủy.';
+    END IF;
+END$$
+
+-- Trigger 3: Tự động ghi vết lịch sử khi đổi trạng thái đơn hàng (Audit Trail)
 DROP TRIGGER IF EXISTS trg_order_status_audit$$
 CREATE TRIGGER trg_order_status_audit
 AFTER UPDATE ON orders
@@ -324,18 +542,40 @@ BEGIN
     END IF;
 END$$
 
--- Trigger 3: Tự động cập nhật số lượng đã bán (Auto Sold Quantity Counter)
+-- Trigger 4: Tự động cập nhật số lượng đã bán và ghi thẻ kho xuất bán
 DROP TRIGGER IF EXISTS trg_update_sold_count$$
 CREATE TRIGGER trg_update_sold_count
 AFTER INSERT ON order_items
 FOR EACH ROW
 BEGIN
+    DECLARE v_current_stock DECIMAL(10,2);
+
+    -- Lấy tồn kho trước đó của sản phẩm
+    SELECT stock_quantity INTO v_current_stock FROM products WHERE id = NEW.product_id;
+
+    -- Tăng số lượng đã bán
     UPDATE products
     SET sold_quantity = sold_quantity + NEW.quantity
     WHERE id = NEW.product_id;
+
+    -- Tự động ghi nhận vào Thẻ kho (Inventory Audit Log)
+    IF v_current_stock IS NOT NULL THEN
+        INSERT INTO inventory_logs (product_id, variant_id, change_type, quantity_before, quantity_change, quantity_after, reference_id, note, created_at)
+        VALUES (
+            NEW.product_id,
+            NEW.variant_id,
+            'ORDER_SALE',
+            v_current_stock,
+            -NEW.quantity,
+            GREATEST(0.00, v_current_stock - NEW.quantity),
+            CONCAT('ORDER_ITEM_', NEW.id),
+            CONCAT('Xuất bán đơn hàng #', NEW.order_id),
+            NOW()
+        );
+    END IF;
 END$$
 
--- Trigger 4: Tự động tính điểm sao trung bình cho Sản phẩm và Toàn gian hàng khi có Đánh giá
+-- Trigger 5: Tự động tính điểm sao trung bình cho Sản phẩm và Toàn gian hàng khi có Đánh giá
 DROP TRIGGER IF EXISTS trg_after_review_insert$$
 CREATE TRIGGER trg_after_review_insert
 AFTER INSERT ON reviews
@@ -345,8 +585,8 @@ BEGIN
 
     -- 1. Cập nhật sao trung bình của sản phẩm
     UPDATE products
-    SET rating_avg = (SELECT ROUND(AVG(rating), 1) FROM reviews WHERE product_id = NEW.product_id),
-        review_count = (SELECT COUNT(*) FROM reviews WHERE product_id = NEW.product_id)
+    SET rating_avg = (SELECT ROUND(AVG(rating), 1) FROM reviews WHERE product_id = NEW.product_id AND is_deleted = FALSE),
+        review_count = (SELECT COUNT(*) FROM reviews WHERE product_id = NEW.product_id AND is_deleted = FALSE)
     WHERE id = NEW.product_id;
 
     -- 2. Tìm shop sở hữu sản phẩm này
@@ -359,17 +599,17 @@ BEGIN
             SELECT ROUND(COALESCE(AVG(r.rating), 5.0), 1)
             FROM reviews r
             JOIN products p ON r.product_id = p.id
-            WHERE p.shop_id = target_shop_id
+            WHERE p.shop_id = target_shop_id AND r.is_deleted = FALSE
         )
         WHERE id = target_shop_id;
     END IF;
 END$$
 
 -- ==============================================================================================
--- 16. STORED PROCEDURES (THỦ TỤC XỬ LÝ NGHIỆP VỤ NẶNG TẦNG DB)
+-- 26. STORED PROCEDURES (THỦ TỤC XỬ LÝ NGHIỆP VỤ NẶNG TẦNG DB)
 -- ==============================================================================================
 
--- Procedure 1: Hủy đơn hàng và tự động hoàn trả tồn kho nguyên tử
+-- Procedure 1: Hủy đơn hàng, tự động hoàn trả tồn kho nguyên tử và ghi vết thẻ kho
 DROP PROCEDURE IF EXISTS sp_cancel_order_and_restock$$
 CREATE PROCEDURE sp_cancel_order_and_restock(
     IN p_order_code VARCHAR(50),
@@ -401,6 +641,19 @@ BEGIN
     SET p.stock_quantity = p.stock_quantity + oi.quantity
     WHERE oi.order_id = v_order_id;
 
+    -- Hoàn trả tồn kho phân loại biến thể nếu có
+    UPDATE product_variants pv
+    JOIN order_items oi ON pv.id = oi.variant_id
+    SET pv.stock_quantity = pv.stock_quantity + oi.quantity
+    WHERE oi.order_id = v_order_id;
+
+    -- Ghi nhận lịch sử hoàn trả vào thẻ kho
+    INSERT INTO inventory_logs (product_id, variant_id, change_type, quantity_before, quantity_change, quantity_after, reference_id, note, created_at)
+    SELECT oi.product_id, oi.variant_id, 'ORDER_CANCEL_RESTOCK', p.stock_quantity - oi.quantity, oi.quantity, p.stock_quantity, p_order_code, CONCAT('Hoàn kho do hủy đơn bởi ', p_cancelled_by), NOW()
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.id
+    WHERE oi.order_id = v_order_id;
+
     -- Cập nhật trạng thái đơn
     UPDATE orders
     SET status = 'CANCELLED',
@@ -412,7 +665,72 @@ BEGIN
     COMMIT;
 END$$
 
--- Procedure 2: Tái tính toán điểm sao toàn bộ các Shop định kỳ
+-- Procedure 2: Tự động quyết toán đơn hàng sang Ví người bán khi giao thành công (Escrow Settlement)
+DROP PROCEDURE IF EXISTS sp_settle_order_payout$$
+CREATE PROCEDURE sp_settle_order_payout(
+    IN p_order_id BIGINT,
+    IN p_commission_rate DECIMAL(5,2) -- Ví dụ: 5.00 nghĩa là 5%
+)
+BEGIN
+    DECLARE v_shop_id BIGINT;
+    DECLARE v_status VARCHAR(30);
+    DECLARE v_final_amount DECIMAL(12,2);
+    DECLARE v_shop_discount DECIMAL(12,2);
+    DECLARE v_platform_discount DECIMAL(12,2);
+    DECLARE v_commission_fee DECIMAL(12,2);
+    DECLARE v_net_payout DECIMAL(14,2);
+    DECLARE v_wallet_id BIGINT;
+    DECLARE v_current_balance DECIMAL(14,2);
+
+    START TRANSACTION;
+
+    SELECT shop_id, status, final_amount, shop_discount_amount, platform_discount_amount
+    INTO v_shop_id, v_status, v_final_amount, v_shop_discount, v_platform_discount
+    FROM orders
+    WHERE id = p_order_id
+    FOR UPDATE;
+
+    IF v_status <> 'DELIVERED' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Chỉ có thể quyết toán đơn hàng đã giao thành công!';
+    END IF;
+
+    -- Đảm bảo ví shop tồn tại
+    INSERT INTO shop_wallets (shop_id, available_balance, pending_balance, locked_balance, created_at)
+    VALUES (v_shop_id, 0.00, 0.00, 0.00, NOW())
+    ON DUPLICATE KEY UPDATE updated_at = NOW();
+
+    SELECT id, available_balance INTO v_wallet_id, v_current_balance
+    FROM shop_wallets
+    WHERE shop_id = v_shop_id
+    FOR UPDATE;
+
+    -- Tính toán phí sàn và số tiền thực nhận của Shop:
+    -- Tiền shop nhận = Tiền thanh toán của khách + Tiền sàn trợ giá - Phí hoa hồng sàn
+    SET v_commission_fee = ROUND(v_final_amount * (p_commission_rate / 100.0), 2);
+    SET v_net_payout = (v_final_amount + v_platform_discount) - v_commission_fee;
+
+    -- Cộng tiền vào số dư khả dụng
+    UPDATE shop_wallets
+    SET available_balance = available_balance + v_net_payout,
+        updated_at = NOW()
+    WHERE id = v_wallet_id;
+
+    -- Ghi nhật ký biến động ví
+    INSERT INTO wallet_transactions (wallet_id, order_id, transaction_type, amount, balance_after, description, created_at)
+    VALUES (
+        v_wallet_id,
+        p_order_id,
+        'ORDER_PAYOUT',
+        v_net_payout,
+        v_current_balance + v_net_payout,
+        CONCAT('Quyết toán đơn hàng #', p_order_id, ' (Đã trừ ', p_commission_rate, '% phí sàn)'),
+        NOW()
+    );
+
+    COMMIT;
+END$$
+
+-- Procedure 3: Tái tính toán điểm sao toàn bộ các Shop định kỳ
 DROP PROCEDURE IF EXISTS sp_recalculate_shop_rating$$
 CREATE PROCEDURE sp_recalculate_shop_rating(IN p_shop_id BIGINT)
 BEGIN
@@ -421,13 +739,28 @@ BEGIN
         SELECT ROUND(COALESCE(AVG(r.rating), 5.0), 1)
         FROM reviews r
         JOIN products p ON r.product_id = p.id
-        WHERE p.shop_id = s.id
+        WHERE p.shop_id = s.id AND r.is_deleted = FALSE
     )
     WHERE (p_shop_id IS NULL OR s.id = p_shop_id);
 END$$
 
+-- Procedure 4: Tự động lưu chuyển đơn hàng cũ sang Tầng Lạnh (3-Tier Archival Pipeline)
+DROP PROCEDURE IF EXISTS sp_archive_cold_orders$$
+CREATE PROCEDURE sp_archive_cold_orders(IN p_days_threshold INT)
+BEGIN
+    DECLARE v_cutoff_date DATETIME;
+    SET v_cutoff_date = DATE_SUB(NOW(), INTERVAL p_days_threshold DAY);
+
+    -- Đánh dấu đơn hàng cũ hoàn tất sang Tầng Lạnh (COLD)
+    UPDATE orders
+    SET storage_tier = 'COLD'
+    WHERE created_at < v_cutoff_date
+      AND status IN ('DELIVERED', 'CANCELLED')
+      AND storage_tier <> 'COLD';
+END$$
+
 -- ==============================================================================================
--- 17. STORED FUNCTIONS (HÀM TÍNH TOÁN DÙNG CHUNG)
+-- 27. STORED FUNCTIONS (HÀM TÍNH TOÁN DÙNG CHUNG)
 -- ==============================================================================================
 
 -- Function 1: Sinh mã đơn hàng ngẫu nhiên duy nhất

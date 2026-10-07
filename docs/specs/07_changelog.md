@@ -444,6 +444,51 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* CSDL chuẩn hóa 3NF, bảo vệ toàn vẹn dữ liệu tự động bằng Triggers và Transactions, sẵn sàng cho tải cao.
 * **Phạm vi tác động:** `Product.java`, `Order.java`, `Review.java`, `OrderStatusHistory.java`, `OrderService.java`, `SellerService.java`, `EntityMappingTest.java`, `05_database_specification.md`, `chopee_schema_full.sql`.
 
+---
+
+### 📌 [CHG-20261007-002] Mở Rộng Kiến Trúc CSDL Doanh Nghiệp 24 Bảng: Chu Kỳ Sống 3 Tầng, Xóa Mềm, Ví Ký Quỹ Escrow, Thẻ Kho & Flash Sale
+* **Ngày thực hiện:** 2026-10-07
+* **Người thực hiện:** Principal Database Architect & System Governance Engineer
+* **Loại thay đổi:** `ADDED` / `CHANGED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `CATALOG`, `ORDER`, `FINANCE_WALLET`, `INVENTORY`, `DOCS`
+* **Mô tả thay đổi:**
+  1. **Quy chuẩn Xóa Mềm Toàn diện (Soft Delete & Data Immutability):**
+     - Bổ sung `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` và `deleted_at DATETIME NULL` trên tất cả các thực thể nghiệp vụ: `users`, `shops`, `categories`, `products`, `product_variants`, `vouchers`, `reviews`.
+     - Tuyệt đối loại bỏ thao tác `DELETE FROM` gây đứt gãy lịch sử mua hàng hoặc báo cáo tài chính.
+  2. **Chuẩn hóa Phân Tầng Dữ liệu 3 Lớp (3-Tier Hot - Warm - Cold Lifecycle):**
+     - Bổ sung cột `storage_tier ENUM('HOT', 'WARM', 'COLD') DEFAULT 'HOT'` trên bảng `orders` kèm chỉ mục tối ưu `idx_orders_tier_created (storage_tier, created_at)`.
+     - Phân định rõ ranh giới lưu trữ: Hot (RAM/Redis + SSD NVMe), Warm (MySQL Partitioning / Read-Replicas), Cold (Data Lake / S3 Parquet nén).
+     - Bổ sung Stored Procedure `sp_archive_cold_orders` tự động nén và dời dữ liệu lịch sử trên 365 ngày sang Cold Tier.
+  3. **Mô hình Tài chính Ví Ký Quỹ Đa Gian Hàng (Multi-Vendor Escrow & Wallets):**
+     - Bổ sung bảng `shop_wallets`: Quản lý số dư khả dụng (`available_balance`), số dư chờ đối soát (`pending_balance`), và số dư đóng băng (`locked_balance`).
+     - Bổ sung bảng `wallet_transactions`: Nhật ký biến động số dư theo dõi chi tiết từng khoản thu/chi (doanh thu đơn hàng, phí sàn, hoàn tiền, rút tiền).
+     - Bổ sung bảng `payout_requests`: Quản lý lệnh rút tiền của người bán về ngân hàng thụ hưởng kèm trạng thái phê duyệt.
+     - Bổ sung Stored Procedure `sp_settle_order_payout`: Tự động quyết toán tiền ký quỹ sang ví của Shop khi đơn hàng hoàn tất giao nhận (`DELIVERED`), tự động khấu trừ phí hoa hồng sàn.
+  4. **Kiểm Soát Đổi Trả & Khiếu Nại (Return & Refund Disputes):**
+     - Bổ sung bảng `refund_requests`: Tiếp nhận yêu cầu trả hàng, lý do hư hại/hết hạn, ảnh/video khui hộp làm bằng chứng, luồng hòa giải giữa Người mua, Người bán và Ban quản trị Sàn.
+  5. **Thẻ Kho & Kiểm Soát Biến Động Xuất Nhập Tồn (Inventory Audit Logs):**
+     - Bổ sung bảng `inventory_logs`: Lưu vết từng biến động kho (xuất bán đơn hàng, hoàn kho hủy đơn, nhập hàng, hao hụt hư hỏng).
+     - Mở rộng Trigger `trg_update_sold_count` và Procedure `sp_cancel_order_and_restock` tự động ghi nhận thẻ kho minh bạch theo thời gian thực.
+  6. **Đặc Tả Động Danh Mục & Thương Hiệu ("Gọn từ gốc"):**
+     - Bổ sung bảng `brands`: Quản lý thương hiệu chính hãng toàn sàn (Apple, Samsung, Vinamilk, Philips...).
+     - Bổ sung bảng `category_attributes`: Định nghĩa danh mục thông số kỹ thuật chuẩn hóa theo ngành hàng phục vụ bộ lọc tìm kiếm trên giao diện.
+     - Bổ sung `brand_id` trong bảng `products`.
+  7. **Chiến Dịch Khuyến Mãi Flash Sale:**
+     - Bổ sung bảng `flash_sales` và `flash_sale_items`: Hỗ trợ bán hàng giá sốc theo khung giờ có giới hạn số lượng, tự động chuyển về giá gốc khi hết giờ/hết suất mà không cần update bảng `products`.
+  8. **Hệ Thống Thông Báo Thời Gian Thực (In-App Notification Hub):**
+     - Bổ sung bảng `notifications`: Quản lý thông báo trạng thái đơn hàng, ưu đãi và biến động số dư ví cho cả Buyer và Seller.
+  9. **Đồng bộ hóa & Kiểm chứng Toàn vẹn:**
+     - Cập nhật các Java Entity (`User`, `Shop`, `Category`, `Product`, `ProductVariant`, `OrderItem`, `Order`, `Voucher`, `Review`) tương thích 100% với schema mới.
+     - Cập nhật `docs/specs/05_database_specification.md` đạt chuẩn 24 bảng.
+     - Cập nhật kịch bản DDL `backend/src/main/resources/db/chopee_schema_full.sql`.
+     - Kiểm thử tự động: 53/53 JUnit tests PASS, Vite build PASS.
+* **Lý do thay đổi:** Hoàn thành đợt thẩm định và tăng cường cơ sở dữ liệu chuyên sâu nhiều lượt (`/goal`), đảm bảo hệ thống có đầy đủ nền tảng vận hành tài chính, quản lý tồn kho, đổi trả, phân tầng lưu trữ và chống mất dữ liệu đạt chuẩn doanh nghiệp quy mô lớn.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Hệ thống có 14 bảng, chưa có phân hệ ví tiền người bán (dòng tiền bị treo), chưa có thẻ kho ghi nhận biến động, thiếu bảng khiếu nại hoàn tiền, chưa áp dụng cơ chế xóa mềm và phân tầng lưu trữ.
+  * *Sau:* Hệ thống hoàn thiện 24 bảng chuẩn hóa 3NF, tích hợp đầy đủ ví ký quỹ Escrow, thẻ kho tự động, đổi trả tranh chấp, flash sale giờ vàng, đặc tả thuộc tính động theo danh mục và cơ chế xóa mềm an toàn tuyệt đối.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/entity/`, `backend/src/main/resources/db/chopee_schema_full.sql`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
+
+
 
 
 

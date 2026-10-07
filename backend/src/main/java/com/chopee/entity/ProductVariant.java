@@ -33,5 +33,9 @@ public class ProductVariant {
     @Column(nullable = false, precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal stockQuantity = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
 }
 

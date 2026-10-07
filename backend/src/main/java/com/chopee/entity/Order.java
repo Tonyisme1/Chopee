@@ -5,6 +5,7 @@ import com.chopee.entity.enums.OrderStatus;
 import com.chopee.entity.enums.PaymentMethod;
 import com.chopee.entity.enums.PaymentStatus;
 import com.chopee.entity.enums.ShippingMethod;
+import com.chopee.entity.enums.StorageTier;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -97,6 +98,11 @@ public class Order {
     @Column(nullable = false, length = 30)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private StorageTier storageTier = StorageTier.HOT;
 
     @Column(length = 255)
     private String note;
