@@ -37,6 +37,9 @@ class EntityMappingTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+
+    @Autowired
     private VoucherRepository voucherRepository;
 
     @Test
@@ -252,6 +255,76 @@ class EntityMappingTest {
         List<Order> groupedOrders = orderRepository.findByGroupOrderCode(commonGroupCode);
         assertThat(groupedOrders).hasSize(2);
         assertThat(groupedOrders).extracting("shop.name").containsExactlyInAnyOrder("Shop Rau", "Shop Nước");
+    }
+
+    @Test
+    @DisplayName("TC-06: Kiểm tra các trường mở rộng mới: hasVariants, weightGrams, discount breakdown, cancelledBy và OrderStatusHistory")
+    void testExtendedDatabaseFieldsAndHistory() {
+        User seller = userRepository.save(User.builder().username("s_ext").email("sext@m.com").passwordHash("p").fullName("S Ext").role(Role.ROLE_SELLER).build());
+        Shop shop = shopRepository.save(Shop.builder().user(seller).name("Shop Ext").slug("shop-ext").build());
+        Category cat = categoryRepository.save(Category.builder().name("Gia dụng").slug("gia-dung").build());
+
+        // Kiểm tra Product với hasVariants và weightGrams
+        Product product = Product.builder()
+                .shop(shop)
+                .category(cat)
+                .name("Nồi chiên không dầu Philips HD9252")
+                .slug("noi-chien-philips-hd9252")
+                .thumbnailUrl("https://example.com/airfryer.jpg")
+                .originalPrice(new BigDecimal("2500000"))
+                .sellingPrice(new BigDecimal("1890000"))
+                .stockQuantity(new BigDecimal("20"))
+                .unit("chiếc")
+                .hasVariants(false)
+                .weightGrams(4500)
+                .storageType(StorageType.NORMAL)
+                .build();
+        Product savedProduct = productRepository.save(product);
+
+        assertThat(savedProduct.getHasVariants()).isFalse();
+        assertThat(savedProduct.getWeightGrams()).isEqualTo(4500);
+
+        // Kiểm tra Order với chiết khấu phân tách và lý do hủy
+        User buyer = userRepository.save(User.builder().username("b_ext").email("bext@m.com").passwordHash("p").fullName("B Ext").build());
+        Order order = Order.builder()
+                .orderCode("ORD-EXT-001")
+                .groupOrderCode("GRP-EXT-001")
+                .user(buyer)
+                .shop(shop)
+                .shippingName("Trần Văn B")
+                .shippingPhone("0987654321")
+                .shippingAddress("456 Hai Bà Trưng, Q3, HCM")
+                .totalAmount(new BigDecimal("1890000"))
+                .shippingFee(new BigDecimal("25000"))
+                .discountAmount(new BigDecimal("100000"))
+                .shopDiscountAmount(new BigDecimal("60000"))
+                .platformDiscountAmount(new BigDecimal("40000"))
+                .finalAmount(new BigDecimal("1815000"))
+                .status(OrderStatus.CANCELLED)
+                .cancelledBy(CancelledBy.BUYER)
+                .cancellationReason("Đổi ý không mua nữa")
+                .build();
+        Order savedOrder = orderRepository.save(order);
+
+        assertThat(savedOrder.getShopDiscountAmount()).isEqualByComparingTo("60000");
+        assertThat(savedOrder.getPlatformDiscountAmount()).isEqualByComparingTo("40000");
+        assertThat(savedOrder.getCancelledBy()).isEqualTo(CancelledBy.BUYER);
+        assertThat(savedOrder.getCancellationReason()).isEqualTo("Đổi ý không mua nữa");
+
+        // Kiểm tra OrderStatusHistory
+        OrderStatusHistory history = OrderStatusHistory.builder()
+                .order(savedOrder)
+                .previousStatus(OrderStatus.PENDING)
+                .newStatus(OrderStatus.CANCELLED)
+                .changedBy("Khách hàng")
+                .note("Đổi ý không mua nữa")
+                .build();
+        OrderStatusHistory savedHistory = orderStatusHistoryRepository.save(history);
+
+        assertThat(savedHistory.getId()).isNotNull();
+        assertThat(savedHistory.getNewStatus()).isEqualTo(OrderStatus.CANCELLED);
+        List<OrderStatusHistory> histories = orderStatusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(savedOrder.getId());
+        assertThat(histories).hasSize(1);
     }
 }
 

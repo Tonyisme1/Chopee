@@ -65,6 +65,15 @@ public class Product {
     @Builder.Default
     private String unit = "chiếc"; // "kg", "g", "bó", "khay", "lon", "thùng", "chiếc"
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean hasVariants = false;
+
+    // Trọng lượng tính theo Gram để tính phí vận chuyển chính xác (Mặc định 500g)
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer weightGrams = 500;
+
     @Column(nullable = false, precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal minOrderQuantity = BigDecimal.ONE;

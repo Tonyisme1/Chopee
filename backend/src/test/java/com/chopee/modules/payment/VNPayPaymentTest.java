@@ -9,6 +9,7 @@ import com.chopee.modules.payment.dto.CreatePaymentRequest;
 import com.chopee.modules.payment.dto.VNPayIpnResponse;
 import com.chopee.modules.payment.dto.VNPayPaymentResponse;
 import com.chopee.repository.OrderRepository;
+import com.chopee.repository.OrderStatusHistoryRepository;
 import com.chopee.repository.PaymentRepository;
 import com.chopee.repository.ShopRepository;
 import com.chopee.repository.UserRepository;
@@ -41,6 +42,9 @@ class VNPayPaymentTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+
+    @Autowired
     private PaymentRepository paymentRepository;
 
     @Autowired
@@ -56,6 +60,7 @@ class VNPayPaymentTest {
     @BeforeEach
     void setUp() {
         paymentRepository.deleteAll();
+        orderStatusHistoryRepository.deleteAll();
         orderRepository.deleteAll();
         shopRepository.deleteAll();
         userRepository.deleteAll();

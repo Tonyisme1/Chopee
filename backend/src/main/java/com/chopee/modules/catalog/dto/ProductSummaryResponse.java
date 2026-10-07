@@ -23,6 +23,8 @@ public class ProductSummaryResponse {
     private BigDecimal stockQuantity;
     private BigDecimal soldQuantity;
     private String unit;
+    private Boolean hasVariants;
+    private Integer weightGrams;
     private BigDecimal stepQuantity;
     private BigDecimal minOrderQuantity;
     private StorageType storageType;

@@ -35,8 +35,12 @@ public class OrderResponse {
     private BigDecimal totalAmount;
     private BigDecimal shippingFee;
     private BigDecimal discountAmount;
+    private BigDecimal shopDiscountAmount;
+    private BigDecimal platformDiscountAmount;
     private BigDecimal finalAmount;
     private String note;
+    private String cancelledBy;
+    private String cancellationReason;
     @Builder.Default
     private List<OrderItemResponse> items = new ArrayList<>();
     private LocalDateTime createdAt;

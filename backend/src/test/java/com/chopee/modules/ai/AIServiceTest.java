@@ -54,12 +54,16 @@ class AIServiceTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+
     private Shop shop;
     private Category categoryFood;
     private Category categoryTech;
 
     @BeforeEach
     void setUp() {
+        orderStatusHistoryRepository.deleteAll();
         orderItemRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();

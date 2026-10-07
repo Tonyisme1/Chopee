@@ -1,5 +1,6 @@
 package com.chopee.entity;
 
+import com.chopee.entity.enums.CancelledBy;
 import com.chopee.entity.enums.OrderStatus;
 import com.chopee.entity.enums.PaymentMethod;
 import com.chopee.entity.enums.PaymentStatus;
@@ -70,6 +71,15 @@ public class Order {
     @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    // Phân định rõ nguồn giảm giá: Shop tự chịu vs Sàn Chopee trợ giá (Phục vụ đối soát Payout)
+    @Column(precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal shopDiscountAmount = BigDecimal.ZERO;
+
+    @Column(precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal platformDiscountAmount = BigDecimal.ZERO;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal finalAmount;
 
@@ -91,9 +101,20 @@ public class Order {
     @Column(length = 255)
     private String note;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private CancelledBy cancelledBy;
+
+    @Column(length = 255)
+    private String cancellationReason;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<OrderStatusHistory> statusHistory = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

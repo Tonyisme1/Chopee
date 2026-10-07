@@ -37,6 +37,9 @@ class OrderSplittingTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+
+    @Autowired
     private OrderItemRepository orderItemRepository;
 
     @Autowired
@@ -62,6 +65,7 @@ class OrderSplittingTest {
 
     @BeforeEach
     void setUp() {
+        orderStatusHistoryRepository.deleteAll();
         orderItemRepository.deleteAll();
         orderRepository.deleteAll();
         cartItemRepository.deleteAll();

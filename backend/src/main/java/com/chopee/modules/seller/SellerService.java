@@ -2,6 +2,7 @@ package com.chopee.modules.seller;
 
 import com.chopee.common.dto.PageResponse;
 import com.chopee.entity.*;
+import com.chopee.entity.enums.CancelledBy;
 import com.chopee.entity.enums.OrderStatus;
 import com.chopee.entity.enums.ProductStatus;
 import com.chopee.modules.catalog.ProductService;
@@ -37,6 +38,7 @@ public class SellerService {
     private final OrderRepository orderRepository;
     private final ProductService productService;
     private final OrderService orderService;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
 
     public Shop getSellerShop(Long sellerId) {
         return shopRepository.findByUserId(sellerId)
@@ -277,6 +279,11 @@ public class SellerService {
         }
 
         if (newStatus == OrderStatus.CANCELLED) {
+            order.setCancelledBy(CancelledBy.SELLER);
+            String cancelReason = (request.getNote() != null && !request.getNote().trim().isEmpty())
+                    ? request.getNote().trim() : "Người bán hủy đơn";
+            order.setCancellationReason(cancelReason);
+
             // Hoàn lại tồn kho khi đơn bị hủy
             for (OrderItem item : order.getItems()) {
                 productRepository.restoreStock(item.getProduct().getId(), item.getQuantity());
@@ -289,6 +296,15 @@ public class SellerService {
         }
 
         Order saved = orderRepository.save(order);
+
+        orderStatusHistoryRepository.save(OrderStatusHistory.builder()
+                .order(saved)
+                .previousStatus(currentStatus)
+                .newStatus(newStatus)
+                .changedBy("Người bán (" + shop.getName() + ")")
+                .note(request.getNote())
+                .build());
+
         return orderService.mapToOrderResponse(saved);
     }
 

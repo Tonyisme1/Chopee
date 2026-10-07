@@ -2,6 +2,7 @@ package com.chopee.modules.order;
 
 import com.chopee.common.dto.PageResponse;
 import com.chopee.entity.*;
+import com.chopee.entity.enums.CancelledBy;
 import com.chopee.entity.enums.OrderStatus;
 import com.chopee.entity.enums.PaymentStatus;
 import com.chopee.entity.enums.ProductStatus;
@@ -33,6 +34,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
 
     @Transactional(readOnly = true)
     public CheckoutPreviewResponse previewCheckout(Long userId, CheckoutPreviewRequest request) {
@@ -215,6 +217,14 @@ public class OrderService {
             Order savedOrder = orderRepository.save(order);
             savedOrders.add(savedOrder);
             grandTotal = grandTotal.add(savedOrder.getFinalAmount());
+
+            orderStatusHistoryRepository.save(OrderStatusHistory.builder()
+                    .order(savedOrder)
+                    .previousStatus(null)
+                    .newStatus(OrderStatus.PENDING)
+                    .changedBy("Khách hàng (" + user.getUsername() + ")")
+                    .note("Khởi tạo đơn hàng từ giỏ hàng")
+                    .build());
         }
 
         // 4. Xóa các món hàng đã đặt khỏi giỏ hàng của người mua
@@ -273,9 +283,10 @@ public class OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-        if (reason != null && !reason.trim().isEmpty()) {
-            order.setNote((order.getNote() != null ? order.getNote() + " | " : "") + "Lý do hủy: " + reason.trim());
-        }
+        order.setCancelledBy(CancelledBy.BUYER);
+        String cancelReason = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khách hàng tự hủy đơn";
+        order.setCancellationReason(cancelReason);
+        order.setNote((order.getNote() != null ? order.getNote() + " | " : "") + "Lý do hủy: " + cancelReason);
 
         // Hoàn lại tồn kho đã trừ nguyên tử
         for (OrderItem item : order.getItems()) {
@@ -283,6 +294,15 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
+
+        orderStatusHistoryRepository.save(OrderStatusHistory.builder()
+                .order(saved)
+                .previousStatus(OrderStatus.PENDING)
+                .newStatus(OrderStatus.CANCELLED)
+                .changedBy("Khách hàng")
+                .note(cancelReason)
+                .build());
+
         return mapToOrderResponse(saved);
     }
 
@@ -330,8 +350,12 @@ public class OrderService {
                 .totalAmount(order.getTotalAmount())
                 .shippingFee(order.getShippingFee())
                 .discountAmount(order.getDiscountAmount())
+                .shopDiscountAmount(order.getShopDiscountAmount())
+                .platformDiscountAmount(order.getPlatformDiscountAmount())
                 .finalAmount(order.getFinalAmount())
                 .note(order.getNote())
+                .cancelledBy(order.getCancelledBy() != null ? order.getCancelledBy().name() : null)
+                .cancellationReason(order.getCancellationReason())
                 .items(itemResponses)
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())

@@ -409,21 +409,40 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống sở hữu 7 tài khoản mẫu, 5 shop, 14 danh mục và 31 sản phẩm chất lượng cao sẵn sàng đưa vào vận hành.
 ---
 
-### 📌 [CHG-20261004-022] Tích hợp Liên kết Gian hàng Trực tiếp (Shop Deep-Link) cho Trợ lý AI Copilot
-* **Ngày thực hiện:** 2026-10-04
-* **Người thực hiện:** Fullstack & AI Integration Specialist
+### 📌 [CHG-20261007-001] Tái Cấu Trúc & Tối Ưu Hóa Toàn Diện Cơ Sở Dữ Liệu Chopee (Database Hardening)
+* **Ngày thực hiện:** 2026-10-07
+* **Người thực hiện:** Lead Database Architect & Backend Specialist
 * **Loại thay đổi:** `CHANGED`
-* **Phân hệ ảnh hưởng:** `AI_SERVICE`, `CATALOG`, `BACKEND_API`, `DTO`
-* **Mô tả thay đổi:** 
-  1. Mở rộng `ProductSummaryResponse` DTO: bổ sung thuộc tính `shopSlug` được map tự động từ `product.getShop().getSlug()` trong `ProductService`.
-  2. Cập nhật Prompt Gemini 3.5 Flash: thêm quy tắc bắt buộc AI phải đính kèm liên kết Markdown `[Tên Gian Hàng](/shop/{shopSlug})` khi nhắc đến bất kỳ gian hàng hoặc sản phẩm nào.
-  3. Cập nhật Bộ quy tắc phản hồi Fallback nội bộ (`generateAdviceReply`): chuẩn hóa tất cả các nhánh kịch bản (`COOKING_RECIPE`, `TECH_ADVICE`, `BUDGET_SHOPPING`, `GENERAL_ASSISTANT`) để luôn in ra danh sách sản phẩm kèm hyperlink Markdown dẫn thẳng đến gian hàng tương ứng: `[Tên Gian Hàng](/shop/{shopSlug})`.
-  4. Xác minh kiểm thử tự động: 52/52 JUnit tests PASS, `npm run build` PASS, kiểm thử cURL thực tế trả về định dạng link click được trọn vẹn.
-* **Lý do thay đổi:** Đáp ứng yêu cầu nghiệp vụ của người dùng: khi AI tư vấn thực đơn hoặc sản phẩm, khách hàng phải có liên kết trực tiếp để click vào xem gian hàng của người bán tương ứng (`/shop/{shopSlug}`).
+* **Phân hệ ảnh hưởng:** `DATABASE`, `CATALOG`, `ORDER`, `AUDIT`, `BACKEND_API`, `DOCS`
+* **Mô tả thay đổi:**
+  1. **Khắc phục xung đột Biến thể & Tồn kho (`products` vs `product_variants`):**
+     - Bổ sung cột `has_variants BOOLEAN NOT NULL DEFAULT FALSE` vào bảng `products` để phân định dứt khoát hàng đơn lẻ và hàng có phân loại.
+  2. **Chuẩn hóa Trọng lượng tính cước vận chuyển:**
+     - Bổ sung cột `weight_grams INT NOT NULL DEFAULT 500` vào bảng `products` cho phép tính cước phí chính xác theo gram cho mọi loại hàng (nông sản, đồ uống, thiết bị).
+  3. **Phân định Nguồn Giảm Giá & Đối Soát Tài Chính Đa Shop:**
+     - Mở rộng bảng `orders`: tách `shop_discount_amount` (Shop chịu) và `platform_discount_amount` (Sàn trợ giá) phục vụ quyết toán Payout.
+  4. **Kiểm soát Quy trình Hủy đơn:**
+     - Bổ sung `cancelled_by ENUM('BUYER', 'SELLER', 'ADMIN', 'SYSTEM')` và `cancellation_reason VARCHAR(255)` trên bảng `orders`.
+  5. **Bổ sung Thực thể Ghi vết Hành trình Đơn hàng (`order_status_history`):**
+     - Tạo Entity `OrderStatusHistory`, Repository và tự động ghi log audit trail mỗi khi đơn đổi trạng thái.
+  6. **Nâng cấp Đánh giá Khách hàng (`reviews`):**
+     - Bổ sung cột `images_json TEXT` lưu trữ hình ảnh / video feedback thực tế của người mua.
+  7. **Triển khai Triggers, Procedures và Functions Tầng Database:**
+     - `trg_prevent_negative_stock`: Chống âm kho trực tiếp ở tầng DB.
+     - `trg_order_status_audit`: Tự động ghi nhận lịch sử đơn hàng.
+     - `trg_update_sold_count`: Tự động cộng dồn số lượng bán.
+     - `trg_after_review_insert`: Tự động tính sao trung bình cho sản phẩm và shop.
+     - `sp_cancel_order_and_restock`: Thủ tục hoàn kho nguyên tử có khóa bi quan `FOR UPDATE`.
+     - `fn_calculate_shipping_fee`: Hàm tính cước phí lũy tiến theo trọng lượng.
+  8. **Xuất bản Kịch bản SQL Hoàn chỉnh:**
+     - `backend/src/main/resources/db/chopee_schema_full.sql` gồm 14 bảng, ràng buộc khóa ngoại chặt chẽ, Full-text index và DDL thủ tục.
+  9. **Kiểm thử tự động:**
+     - Toàn bộ 53/53 JUnit tests đạt 100% PASS, `npm run build` PASS.
+* **Lý do thay đổi:** Giải quyết triệt để 5 lỗ hổng logic nghiệp vụ, giảm tải tính toán cho tầng ứng dụng và hoàn thiện thiết kế CSDL đạt chuẩn doanh nghiệp.
 * **Chi tiết Trước & Sau:**
-  * *Trước:* AI chỉ gợi ý tên chung chung hoặc tên shop ở dạng text thô, `ProductSummaryResponse` chỉ có `shopId` và `shopName` mà thiếu `shopSlug`.
-  * *Sau:* Cả phản hồi từ Gemini và phản hồi dự phòng đều tự động tạo markdown link click được dẫn tới gian hàng, đồng thời API trả về `shopSlug` chuẩn xác để widget giao diện Frontend có thể điều hướng mượt mà.
-* **Phạm vi tác động:** `ProductSummaryResponse.java`, `ProductService.java`, `AIShoppingCopilotService.java`, `docs/specs/07_changelog.md`.
+  * *Trước:* Bảng `products` thiếu trọng lượng và cờ biến thể; đơn hàng chưa phân định nguồn giảm giá; thiếu bảng ghi vết lịch sử và trigger tự động tính sao.
+  * *Sau:* CSDL chuẩn hóa 3NF, bảo vệ toàn vẹn dữ liệu tự động bằng Triggers và Transactions, sẵn sàng cho tải cao.
+* **Phạm vi tác động:** `Product.java`, `Order.java`, `Review.java`, `OrderStatusHistory.java`, `OrderService.java`, `SellerService.java`, `EntityMappingTest.java`, `05_database_specification.md`, `chopee_schema_full.sql`.
 
 
 

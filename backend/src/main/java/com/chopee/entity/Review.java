@@ -37,6 +37,10 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    // Mảng JSON chứa link ảnh / video đánh giá thực tế: ["img1.jpg", "img2.jpg"]
+    @Column(columnDefinition = "TEXT")
+    private String imagesJson;
+
     @Column(columnDefinition = "TEXT")
     private String shopReply;
 

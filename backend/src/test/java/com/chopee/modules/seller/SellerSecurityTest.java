@@ -49,6 +49,9 @@ class SellerSecurityTest {
     private OrderRepository orderRepository;
 
     @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+
+    @Autowired
     private OrderItemRepository orderItemRepository;
 
     private User sellerA;
@@ -62,6 +65,7 @@ class SellerSecurityTest {
 
     @BeforeEach
     void setUp() {
+        orderStatusHistoryRepository.deleteAll();
         orderItemRepository.deleteAll();
         orderRepository.deleteAll();
         productRepository.deleteAll();
