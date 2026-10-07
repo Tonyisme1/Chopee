@@ -426,21 +426,46 @@ erDiagram
 
 ---
 
-### 5. Danh mục Triggers, Stored Procedures & Stored Functions
+### 5. Danh mục Triggers, Stored Procedures, Stored Functions, Views & Events
 
-#### 5.1 Triggers (Tự động hóa toàn vẹn dữ liệu)
+#### 5.1 Ràng Buộc Toàn Vẹn & Cột Sinh Tự Động Nội Tại (CHECK Constraints & Generated Virtual Columns)
+* **CHECK Constraints:**
+  * `chk_shops_rating`: Điểm đánh giá shop bắt buộc nằm trong khoảng `[1.0, 5.0]`.
+  * `chk_products_prices`: Giá bán phải $\ge 0$ và giá gốc phải $\ge$ giá bán (`selling_price <= original_price`).
+  * `chk_products_stock`: Tồn kho và số lượng đã bán không bao giờ được âm.
+  * `chk_products_weight`: Trọng lượng sản phẩm bắt buộc $> 0$ gram để tính phí ship chuẩn xác.
+  * `chk_products_moq`: Số lượng đặt tối thiểu và bước nhảy $> 0$.
+  * `chk_orders_amounts` & `chk_orders_discounts`: Tiền đơn hàng và các khoản giảm giá bắt buộc $\ge 0$.
+  * `chk_vouchers_dates` & `chk_vouchers_usage`: `start_date < end_date` và `used_count <= usage_limit`.
+  * `chk_wallet_available`, `pending`, `locked`: Các số dư ví người bán tuyệt đối không được âm ở cấp độ engine InnoDB.
+* **Generated Virtual Column:**
+  * `products.discount_percentage`: Tính tự động phần trăm giảm giá `((original_price - selling_price) / original_price) * 100` trực tiếp tại engine DB, không tốn dung lượng ổ đĩa, có index tăng tốc tìm kiếm deal hot.
+
+#### 5.2 Triggers (Tự động hóa toàn vẹn dữ liệu)
 1. `trg_prevent_negative_stock`: Chặn tuyệt đối số âm trên `products.stock_quantity`.
 2. `trg_prevent_negative_variant_stock`: Chặn tuyệt đối số âm trên `product_variants.stock_quantity`.
 3. `trg_order_status_audit`: Tự động chèn dòng lịch sử vào `order_status_history` mỗi khi đơn đổi trạng thái.
 4. `trg_update_sold_count`: Tự động tăng `products.sold_quantity` và tự động ghi bản ghi xuất kho vào `inventory_logs`.
 5. `trg_after_review_insert`: Tự động tính toán lại điểm sao sản phẩm `products.rating_avg` và uy tín toàn shop `shops.rating`.
+6. `trg_prevent_negative_wallet`: Chặn tuyệt đối số âm trên số dư khả dụng `shop_wallets.available_balance`.
+7. `trg_auto_sync_has_variants`: Tự động bật cờ `products.has_variants = TRUE` khi thêm phân loại biến thể.
 
-#### 5.2 Stored Procedures (Xử lý nghiệp vụ nặng)
-1. `sp_cancel_order_and_restock`: Hủy đơn, hoàn trả tồn kho sản phẩm + biến thể, ghi thẻ kho `inventory_logs`, đổi trạng thái đơn trong 1 Transaction nguyên tử duy nhất.
+#### 5.3 Stored Procedures (Xử lý nghiệp vụ nặng)
+1. `sp_cancel_order_and_restock`: Hủy đơn, hoàn trả tồn kho sản phẩm + biến thể, ghi thẻ kho `inventory_logs`, đổi trạng thái đơn trong 1 Transaction nguyên tử duy nhất có khóa bi quan `FOR UPDATE`.
 2. `sp_settle_order_payout`: Tự động đối soát và giải phóng tiền ký quỹ Escrow vào `shop_wallets` của người bán khi đơn hàng `DELIVERED`, trừ phí hoa hồng sàn và ghi vết `wallet_transactions`.
 3. `sp_recalculate_shop_rating`: Batch job quét và tính lại điểm sao trung bình toàn bộ các shop định kỳ.
 4. `sp_archive_cold_orders`: Batch job chuyển đổi trạng thái các đơn hàng cũ đã hoàn tất trên 365 ngày sang `storage_tier = 'COLD'`.
 
-#### 5.3 Stored Functions (Tính toán dùng chung)
+#### 5.4 Stored Functions (Tính toán dùng chung)
 1. `fn_generate_order_code`: Sinh mã đơn ngẫu nhiên theo chuẩn `ORD-YYYYMMDD-XXXXXX`.
 2. `fn_calculate_shipping_fee`: Tính cước vận chuyển chuẩn hóa theo phương thức giao hàng và khối lượng hàng (Gram).
+3. `fn_is_product_in_stock`: Kiểm tra nhanh tính khả dụng tồn kho của sản phẩm hoặc biến thể ngay trong câu truy vấn checkout.
+
+#### 5.5 Database Views (Khung nhìn tối ưu hiệu năng)
+1. `vw_active_products`: Khung nhìn gom sẵn sản phẩm đang bán hợp lệ kèm thông tin Shop, Thương hiệu, Danh mục và % giảm giá, triệt tiêu gánh nặng viết câu lệnh `JOIN` phức tạp ở tầng ứng dụng.
+2. `vw_seller_financial_summary`: Khung nhìn bảng điều khiển tài chính Người bán: tổng số dư khả dụng, chờ đối soát, số đơn đã giao và tổng doanh thu thực tế.
+
+#### 5.6 Database Event Scheduler (Lập lịch tự động hóa nội tại DB)
+1. `evt_daily_cold_archive`: Tự động kích hoạt lúc 02:00 sáng mỗi ngày dời dữ liệu đơn hàng cũ trên 1 năm sang Tầng Lạnh (COLD) bằng `sp_archive_cold_orders(365)`.
+2. `evt_auto_update_flash_sale_status`: Quét mỗi 1 phút tự động kích hoạt chiến dịch Flash Sale đến giờ và đóng chiến dịch đã hết giờ.
+

@@ -488,6 +488,43 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống hoàn thiện 24 bảng chuẩn hóa 3NF, tích hợp đầy đủ ví ký quỹ Escrow, thẻ kho tự động, đổi trả tranh chấp, flash sale giờ vàng, đặc tả thuộc tính động theo danh mục và cơ chế xóa mềm an toàn tuyệt đối.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/entity/`, `backend/src/main/resources/db/chopee_schema_full.sql`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261007-003] Tối Ưu Hóa & Khai Thác Triệt Để Năng Lực Nội Tại MySQL 8.0+ (Native Database Hardening)
+* **Ngày thực hiện:** 2026-10-07
+* **Người thực hiện:** Principal Database Architect & System Governance Engineer
+* **Loại thay đổi:** `CHANGED` / `OPTIMIZED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `CATALOG`, `FINANCE_WALLET`, `DOCS`
+* **Mô tả thay đổi:**
+  1. **Triển khai Ràng buộc Toàn vẹn Dữ liệu Cấp Engine (Native CHECK Constraints):**
+     - `chk_shops_rating`: Điểm đánh giá shop bắt buộc nằm trong khoảng `[1.0, 5.0]`.
+     - `chk_products_prices`: Chặn logic sai lệch giá (`selling_price >= 0 AND original_price >= selling_price`).
+     - `chk_products_stock`: Tồn kho và số lượng đã bán không âm (`stock_quantity >= 0 AND sold_quantity >= 0`).
+     - `chk_products_weight` & `chk_products_moq`: Trọng lượng và số lượng đặt tối thiểu bắt buộc $> 0`.
+     - `chk_orders_amounts` & `chk_orders_discounts`: Tổng tiền, tiền ship và giảm giá $\ge 0$.
+     - `chk_vouchers_dates` & `chk_vouchers_usage`: `start_date < end_date` và `used_count <= usage_limit`.
+     - `chk_wallet_available`, `pending`, `locked`: Chặn âm số dư ví người bán ở cấp độ engine InnoDB.
+     - `chk_flash_sales_time` & `chk_fsi_stock`: Thời gian và giới hạn tồn kho flash sale chặt chẽ.
+  2. **Cột Sinh Ảo Tự Động (Generated Virtual Columns):**
+     - Bổ sung `products.discount_percentage`: Tính tự động phần trăm giảm giá `ROUND(((original_price - selling_price) / original_price) * 100)` tại nội tại DB, không tốn ổ đĩa và có index hỗ trợ lọc nhanh sản phẩm giảm sâu.
+  3. **Mở rộng Triggers Bảo Vệ Toàn Vẹn Tài Chính & Danh Mục:**
+     - `trg_prevent_negative_wallet`: Chặn tuyệt đối số âm trên `shop_wallets.available_balance`.
+     - `trg_auto_sync_has_variants`: Tự động đồng bộ cờ `has_variants = TRUE` khi có phân loại hàng được thêm vào.
+  4. **Khung Nhìn Tối Ưu Hiệu Năng (Native Database Views):**
+     - `vw_active_products`: Khung nhìn sản phẩm đang mở bán kết hợp Shop, Thương hiệu, Danh mục và % giảm giá, triệt tiêu gánh nặng câu lệnh `JOIN` phức tạp ở backend.
+     - `vw_seller_financial_summary`: Khung nhìn tóm tắt số dư, doanh thu và đơn hàng đã giao cho từng người bán.
+  5. **Bộ Lập Lịch Tác Vụ Nội Tại (MySQL Event Scheduler):**
+     - `evt_daily_cold_archive`: Tự động dời đơn cũ > 365 ngày sang Cold Tier vào 02:00 sáng mỗi ngày.
+     - `evt_auto_update_flash_sale_status`: Quét mỗi phút tự động kích hoạt/đóng chiến dịch flash sale đúng giờ.
+  6. **Hàm Tính Toán Nội Tại:**
+     - Bổ sung `fn_is_product_in_stock`: Kiểm tra nhanh tồn kho khả dụng ngay trong câu query SQL.
+* **Lý do thay đổi:** Tận dụng tối đa sức mạnh sẵn có của Hệ quản trị CSDL MySQL 8.0+, đưa các quy tắc kiểm tra tính toàn vẹn xuống tận tầng lưu trữ để bảo vệ dữ liệu chống lại cả các câu lệnh SQL chạy sai hoặc lỗi từ ứng dụng, đồng thời giảm tải tính toán cho CPU của Backend Server.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Việc kiểm tra giá âm, ví âm, tính phần trăm giảm giá và kiểm tra tồn kho phụ thuộc hoàn toàn vào tầng code Java Backend; thiếu Event Scheduler và Views nội tại.
+  * *Sau:* MySQL tự bảo vệ toàn vẹn dữ liệu ở cấp độ engine InnoDB qua CHECK constraints, Triggers, Virtual Columns, Views và Events tự động hóa 100%.
+* **Phạm vi tác động:** `backend/src/main/resources/db/chopee_schema_full.sql`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
+
+
 
 
 
