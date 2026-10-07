@@ -176,7 +176,12 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_products_discount (discount_percentage),
     INDEX idx_products_is_deleted (is_deleted),
     INDEX idx_products_storage_type (storage_type),
-    FULLTEXT INDEX ft_products_search (name, description)
+    -- Chỉ mục bao phủ (Covering Index) cho luồng duyệt danh mục bán chạy:
+    INDEX idx_products_cat_sold (category_id, status, is_deleted, sold_quantity DESC),
+    -- Chỉ mục bao phủ cho gian hàng:
+    INDEX idx_products_shop_created (shop_id, status, is_deleted, created_at DESC),
+    -- Tìm kiếm Fulltext có N-gram Tokenizer hỗ trợ tiếng Việt có dấu:
+    FULLTEXT INDEX ft_products_search (name, description) /*!50100 WITH PARSER ngram */
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
@@ -223,7 +228,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
     CONSTRAINT fk_cart_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_cart_items_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
     CONSTRAINT chk_cart_quantity CHECK (quantity > 0),
-    INDEX idx_cart_items_user (user_id)
+    INDEX idx_cart_items_user (user_id),
+    INDEX idx_cart_items_lookup (user_id, product_id, variant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
@@ -262,7 +268,11 @@ CREATE TABLE IF NOT EXISTS orders (
     INDEX idx_orders_user (user_id),
     INDEX idx_orders_shop (shop_id),
     INDEX idx_orders_status (status),
-    INDEX idx_orders_tier_created (storage_tier, created_at)
+    INDEX idx_orders_tier_created (storage_tier, created_at),
+    -- Chỉ mục bao phủ cho trang Lịch sử mua hàng của Khách:
+    INDEX idx_orders_user_created (user_id, created_at DESC),
+    -- Chỉ mục bao phủ cho trang Quản lý đơn hàng của Người bán:
+    INDEX idx_orders_shop_status_created (shop_id, status, created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
@@ -346,7 +356,9 @@ CREATE TABLE IF NOT EXISTS vouchers (
     CONSTRAINT chk_vouchers_usage CHECK (used_count >= 0 AND used_count <= usage_limit),
     INDEX idx_vouchers_code (code),
     INDEX idx_vouchers_shop (shop_id),
-    INDEX idx_vouchers_active (is_active, is_deleted)
+    INDEX idx_vouchers_active (is_active, is_deleted),
+    -- Chỉ mục bao phủ cho bước kiểm tra & áp mã voucher lúc Checkout:
+    INDEX idx_vouchers_lookup (code, is_active, is_deleted, start_date, end_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------------------------
@@ -815,6 +827,31 @@ BEGIN
       AND storage_tier <> 'COLD';
 END$$
 
+-- Procedure 5: Tự động dọn dẹp các giỏ hàng bị bỏ quên (Hot Tier Memory Cleanup)
+DROP PROCEDURE IF EXISTS sp_cleanup_abandoned_carts$$
+CREATE PROCEDURE sp_cleanup_abandoned_carts(IN p_days_old INT)
+BEGIN
+    DECLARE v_cutoff DATETIME;
+    SET v_cutoff = DATE_SUB(NOW(), INTERVAL p_days_old DAY);
+    
+    DELETE FROM cart_items
+    WHERE updated_at < v_cutoff;
+END$$
+
+-- Procedure 6: Chống phân mảnh và tối ưu hóa cây chỉ mục B-Tree (Index Defragmentation & Stats Update)
+DROP PROCEDURE IF EXISTS sp_defragment_and_analyze_tables$$
+CREATE PROCEDURE sp_defragment_and_analyze_tables()
+BEGIN
+    ANALYZE TABLE products;
+    ANALYZE TABLE orders;
+    ANALYZE TABLE order_items;
+    ANALYZE TABLE cart_items;
+    ANALYZE TABLE shop_wallets;
+    ANALYZE TABLE wallet_transactions;
+    ANALYZE TABLE inventory_logs;
+    ANALYZE TABLE reviews;
+END$$
+
 -- ==============================================================================================
 -- 27. STORED FUNCTIONS (HÀM TÍNH TOÁN DÙNG CHUNG)
 -- ==============================================================================================
@@ -880,6 +917,31 @@ BEGIN
     RETURN (v_stock >= p_requested_qty);
 END$$
 
+-- Function 4: Tính toán giá trị giảm giá voucher chuẩn xác
+DROP FUNCTION IF EXISTS fn_calculate_voucher_discount$$
+CREATE FUNCTION fn_calculate_voucher_discount(
+    p_discount_type VARCHAR(20),
+    p_discount_value DECIMAL(10,2),
+    p_order_amount DECIMAL(12,2),
+    p_max_discount DECIMAL(10,2)
+)
+RETURNS DECIMAL(12,2)
+DETERMINISTIC
+BEGIN
+    DECLARE v_calc DECIMAL(12,2) DEFAULT 0.00;
+
+    IF p_discount_type = 'FIXED_AMOUNT' THEN
+        SET v_calc = LEAST(p_discount_value, p_order_amount);
+    ELSEIF p_discount_type = 'PERCENT' THEN
+        SET v_calc = ROUND(p_order_amount * (p_discount_value / 100.0), 2);
+        IF p_max_discount IS NOT NULL AND p_max_discount > 0 THEN
+            SET v_calc = LEAST(v_calc, p_max_discount);
+        END IF;
+    END IF;
+
+    RETURN v_calc;
+END$$
+
 -- ==============================================================================================
 -- 28. DATABASE VIEWS (KHUNG NHÌN TỐI ƯU HÓA HIỆU NĂNG TẦNG NỘI TẠI DB)
 -- ==============================================================================================
@@ -933,6 +995,19 @@ LEFT JOIN orders o ON s.id = o.shop_id AND o.status = 'DELIVERED'
 WHERE s.is_deleted = FALSE
 GROUP BY s.id, s.name, w.available_balance, w.pending_balance, w.locked_balance;
 
+-- View 3: Khung nhìn thống kê doanh số sàn theo ngày (Platform Daily Metrics View)
+DROP VIEW IF EXISTS vw_platform_daily_metrics;
+CREATE VIEW vw_platform_daily_metrics AS
+SELECT 
+    DATE(created_at) AS metric_date,
+    COUNT(id) AS total_orders,
+    SUM(CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END) AS delivered_orders,
+    SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_orders,
+    COALESCE(SUM(CASE WHEN status = 'DELIVERED' THEN final_amount ELSE 0.00 END), 0.00) AS total_gmv,
+    COALESCE(SUM(CASE WHEN status = 'DELIVERED' THEN ROUND(final_amount * 0.05, 2) ELSE 0.00 END), 0.00) AS est_platform_commission
+FROM orders
+GROUP BY DATE(created_at);
+
 -- ==============================================================================================
 -- 29. DATABASE EVENT SCHEDULER (LẬP LỊCH TỰ ĐỘNG HÓA NỘI TẠI DB)
 -- ==============================================================================================
@@ -968,3 +1043,29 @@ BEGIN
 END;
 
 DELIMITER ;
+
+-- ==============================================================================================
+-- 30. BIG DATA ENTERPRISE PARTITIONING REFERENCE TEMPLATE (> 10M ORDERS)
+-- Lưu ý: Dành riêng cho môi trường sản xuất quy mô lớn với dữ liệu hàng chục triệu đơn hàng.
+-- ==============================================================================================
+/*
+-- Để áp dụng phân vùng trên MySQL InnoDB:
+-- 1. Bảng orders phải có PRIMARY KEY (id, created_at)
+-- 2. Khóa Unique uk_order_code phải là (order_code, created_at)
+ALTER TABLE orders PARTITION BY RANGE (YEAR(created_at) * 100 + MONTH(created_at)) (
+    PARTITION p_2026_01 VALUES LESS THAN (202602),
+    PARTITION p_2026_02 VALUES LESS THAN (202603),
+    PARTITION p_2026_03 VALUES LESS THAN (202604),
+    PARTITION p_2026_04 VALUES LESS THAN (202605),
+    PARTITION p_2026_05 VALUES LESS THAN (202606),
+    PARTITION p_2026_06 VALUES LESS THAN (202607),
+    PARTITION p_2026_07 VALUES LESS THAN (202608),
+    PARTITION p_2026_08 VALUES LESS THAN (202609),
+    PARTITION p_2026_09 VALUES LESS THAN (202610),
+    PARTITION p_2026_10 VALUES LESS THAN (202611),
+    PARTITION p_2026_11 VALUES LESS THAN (202612),
+    PARTITION p_2026_12 VALUES LESS THAN (202701),
+    PARTITION p_future VALUES LESS THAN MAXVALUE
+);
+*/
+

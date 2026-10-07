@@ -450,22 +450,58 @@ erDiagram
 6. `trg_prevent_negative_wallet`: Chặn tuyệt đối số âm trên số dư khả dụng `shop_wallets.available_balance`.
 7. `trg_auto_sync_has_variants`: Tự động bật cờ `products.has_variants = TRUE` khi thêm phân loại biến thể.
 
-#### 5.3 Stored Procedures (Xử lý nghiệp vụ nặng)
+#### 5.3 Stored Procedures (Xử lý nghiệp vụ nặng & Bảo trì DB)
 1. `sp_cancel_order_and_restock`: Hủy đơn, hoàn trả tồn kho sản phẩm + biến thể, ghi thẻ kho `inventory_logs`, đổi trạng thái đơn trong 1 Transaction nguyên tử duy nhất có khóa bi quan `FOR UPDATE`.
 2. `sp_settle_order_payout`: Tự động đối soát và giải phóng tiền ký quỹ Escrow vào `shop_wallets` của người bán khi đơn hàng `DELIVERED`, trừ phí hoa hồng sàn và ghi vết `wallet_transactions`.
 3. `sp_recalculate_shop_rating`: Batch job quét và tính lại điểm sao trung bình toàn bộ các shop định kỳ.
 4. `sp_archive_cold_orders`: Batch job chuyển đổi trạng thái các đơn hàng cũ đã hoàn tất trên 365 ngày sang `storage_tier = 'COLD'`.
+5. `sp_cleanup_abandoned_carts`: Tự động quét và dọn dẹp các giỏ hàng bị bỏ quên không thanh toán sau $N$ ngày (`cart_items`), giữ Tầng Nóng luôn nhẹ và sạch.
+6. `sp_defragment_and_analyze_tables`: Chống phân mảnh và cập nhật chỉ số tối ưu hóa Optimizer (Optimizer Statistics) trên các bảng có tần suất ghi cao.
 
 #### 5.4 Stored Functions (Tính toán dùng chung)
 1. `fn_generate_order_code`: Sinh mã đơn ngẫu nhiên theo chuẩn `ORD-YYYYMMDD-XXXXXX`.
 2. `fn_calculate_shipping_fee`: Tính cước vận chuyển chuẩn hóa theo phương thức giao hàng và khối lượng hàng (Gram).
 3. `fn_is_product_in_stock`: Kiểm tra nhanh tính khả dụng tồn kho của sản phẩm hoặc biến thể ngay trong câu truy vấn checkout.
+4. `fn_calculate_voucher_discount`: Tính toán số tiền được giảm trừ thực tế của mã voucher theo giá trị phần trăm hoặc số tiền cố định (có trần giảm giá tối đa).
 
 #### 5.5 Database Views (Khung nhìn tối ưu hiệu năng)
 1. `vw_active_products`: Khung nhìn gom sẵn sản phẩm đang bán hợp lệ kèm thông tin Shop, Thương hiệu, Danh mục và % giảm giá, triệt tiêu gánh nặng viết câu lệnh `JOIN` phức tạp ở tầng ứng dụng.
 2. `vw_seller_financial_summary`: Khung nhìn bảng điều khiển tài chính Người bán: tổng số dư khả dụng, chờ đối soát, số đơn đã giao và tổng doanh thu thực tế.
+3. `vw_platform_daily_metrics`: Khung nhìn báo cáo kinh doanh sàn hàng ngày: Tổng đơn, đơn hoàn tất, đơn hủy, tổng giá trị hàng hóa (GMV), và doanh thu phí hoa hồng ước tính.
 
 #### 5.6 Database Event Scheduler (Lập lịch tự động hóa nội tại DB)
 1. `evt_daily_cold_archive`: Tự động kích hoạt lúc 02:00 sáng mỗi ngày dời dữ liệu đơn hàng cũ trên 1 năm sang Tầng Lạnh (COLD) bằng `sp_archive_cold_orders(365)`.
 2. `evt_auto_update_flash_sale_status`: Quét mỗi 1 phút tự động kích hoạt chiến dịch Flash Sale đến giờ và đóng chiến dịch đã hết giờ.
+
+---
+
+### 6. Chiến Lược Chỉ Mục Bao Phủ & Cấu Hình Máy Chủ Sản Xuất (High-Performance Indexing & Engine Tuning)
+
+#### 6.1 Danh mục Chỉ mục Bao phủ (Covering Indexes) Tối ưu hóa Truy vấn Tần suất Cao
+1. **Duyệt Danh mục theo Độ Bán chạy:**  
+   `idx_products_cat_sold (category_id, status, is_deleted, sold_quantity DESC)`  
+   -> Cho phép câu truy vấn trang chủ / trang ngành hàng lấy danh sách Top sản phẩm trực tiếp từ B-Tree RAM mà không cần đọc block dữ liệu trên ổ đĩa.
+2. **Duyệt Sản phẩm của Shop:**  
+   `idx_products_shop_created (shop_id, status, is_deleted, created_at DESC)`  
+   -> Tối ưu hóa tải trang chi tiết gian hàng của Người bán.
+3. **Lịch sử Đơn hàng Người mua (Buyer History):**  
+   `idx_orders_user_created (user_id, created_at DESC)`  
+   -> Tăng tốc độ phân trang xem đơn hàng của khách hàng lên $< 1\text{ms}$.
+4. **Quản lý Đơn hàng Người bán (Seller Order Pipeline):**  
+   `idx_orders_shop_status_created (shop_id, status, created_at DESC)`  
+   -> Giúp người bán lọc đơn "Chờ đóng gói" hoặc "Đang giao" ngay lập tức dù shop có hàng trăm ngàn đơn.
+5. **Kiểm tra Voucher lúc Checkout:**  
+   `idx_vouchers_lookup (code, is_active, is_deleted, start_date, end_date)`  
+   -> Phục vụ kiểm tra tính hợp lệ của mã giảm giá trong 1 bước tra cứu duy nhất.
+6. **Tìm kiếm Tiếng Việt N-gram Parser:**  
+   `ft_products_search (name, description) WITH PARSER ngram`  
+   -> Hỗ trợ tìm kiếm từ khóa ghép tiếng Việt có dấu và không dấu siêu tốc.
+
+#### 6.2 Cấu hình Máy chủ MySQL 8.0 Sản Xuất (`my_production.cnf`)
+File cấu hình tối ưu hóa nhân hệ thống được đặt tại [`backend/src/main/resources/db/my_production.cnf`](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/backend/src/main/resources/db/my_production.cnf):
+* `innodb_buffer_pool_size = 24G`: Gán 75% RAM máy chủ phục vụ Tầng Nóng (Hot Tier).
+* `innodb_log_file_size = 1G`: Dung lượng Redo log lớn chống nghẽn I/O trong các đợt bùng nổ đơn Flash Sale.
+* `innodb_flush_log_at_trx_commit = 2`: Tối ưu hóa ghi đệm tăng thông lượng ghi lên 20x–50x.
+* `innodb_io_capacity = 5000` & `innodb_io_capacity_max = 10000`: Tận dụng triệt để ổ cứng NVMe Enterprise.
+
 

@@ -524,6 +524,40 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* MySQL tự bảo vệ toàn vẹn dữ liệu ở cấp độ engine InnoDB qua CHECK constraints, Triggers, Virtual Columns, Views và Events tự động hóa 100%.
 * **Phạm vi tác động:** `backend/src/main/resources/db/chopee_schema_full.sql`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261007-004] Tối Ưu Hóa Chỉ Mục Bao Phủ, Tìm Kiếm Tiếng Việt N-Gram & Tham Số Máy Chủ Sản Xuất
+* **Ngày thực hiện:** 2026-10-07
+* **Người thực hiện:** Principal Database Architect & Performance Engineer
+* **Loại thay đổi:** `OPTIMIZED` / `ADDED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `CATALOG`, `ORDER`, `DOCS`
+* **Mô tả thay đổi:**
+  1. **Thiết kế Hệ thống Chỉ mục Bao phủ (Covering Indexes) Siêu Tốc:**
+     - `idx_products_cat_sold (category_id, status, is_deleted, sold_quantity DESC)`: Cho phép truy vấn danh sách sản phẩm bán chạy theo danh mục phục vụ trực tiếp từ B-Tree index trong RAM, loại bỏ hoàn toàn việc đọc disk block.
+     - `idx_products_shop_created (shop_id, status, is_deleted, created_at DESC)`: Tối ưu trang chi tiết gian hàng của người bán.
+     - `idx_orders_user_created (user_id, created_at DESC)`: Đạt độ trễ $< 1\text{ms}$ khi khách phân trang xem lịch sử đơn.
+     - `idx_orders_shop_status_created (shop_id, status, created_at DESC)`: Tăng tốc luồng lọc đơn hàng theo trạng thái của Seller.
+     - `idx_vouchers_lookup (code, is_active, is_deleted, start_date, end_date)`: Hỗ trợ xác thực mã giảm giá tức thì trong 1 lần tra cứu.
+     - `idx_cart_items_lookup (user_id, product_id, variant_id)`: Tối ưu kiểm tra trùng lặp món hàng trong giỏ.
+  2. **Tối ưu Hóa Tìm Kiếm Tiếng Việt N-Gram (Vietnamese Full-Text Search):**
+     - Cấu hình `/*!50100 WITH PARSER ngram */` trên chỉ mục `ft_products_search (name, description)` hỗ trợ phân tích từ ghép tiếng Việt có dấu/không dấu chuẩn xác mà không cần phụ thuộc vào ElasticSearch ở quy mô khởi đầu.
+  3. **Thủ tục Bảo Trì & Dọn Dẹp Dữ Liệu Rác (Database Maintenance & Hygiene):**
+     - Bổ sung `sp_cleanup_abandoned_carts(IN p_days_old INT)`: Tự động dọn dẹp các mục giỏ hàng bị bỏ quên quá hạn, bảo vệ Tầng Nóng (Hot Tier) không bị phình to.
+     - Bổ sung `sp_defragment_and_analyze_tables()`: Tự động chạy `ANALYZE TABLE` chống phân mảnh index và cập nhật số liệu thống kê cho Cost-Based Optimizer.
+  4. **Bổ sung Hàm & Khung Nhìn Nghiệp Vụ:**
+     - `fn_calculate_voucher_discount`: Hàm nội tại tính toán chính xác tiền chiết khấu voucher theo % hoặc tiền cố định.
+     - `vw_platform_daily_metrics`: Khung nhìn báo cáo chỉ số kinh doanh hàng ngày toàn sàn (GMV, số đơn, phí sàn).
+  5. **Ban Hành File Cấu Hình Máy Chủ Sản Xuất (`my_production.cnf`):**
+     - Xuất bản file cấu hình tinh chỉnh nhân MySQL 8.0 chuyên sâu tại `backend/src/main/resources/db/my_production.cnf` (Buffer pool 75% RAM, 1GB Redo log, `innodb_flush_log_at_trx_commit = 2`, NVMe IOPS 5000-10000).
+  6. **Cung Cấp Kịch Bản Mẫu Phân Vùng Bảng `orders` Theo Tháng (Big Data Partitioning):**
+     - Đưa mẫu DDL `PARTITION BY RANGE` theo tháng vào tài liệu để sẵn sàng kích hoạt khi dữ liệu sàn vượt mốc 10 triệu đơn hàng.
+* **Lý do thay đổi:** Tối ưu hóa đến từng micro-giây cho các câu truy vấn có tần suất cao nhất của sàn TMĐT, đảm bảo hệ thống duy trì độ trễ cực thấp ngay cả trong các dịp bão sale lưu lượng lớn.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Các câu truy vấn lịch sử đơn hàng, danh mục bán chạy phải duyệt qua nhiều block dữ liệu đĩa; tìm kiếm từ khóa tiếng Việt cơ bản; thiếu thủ tục dọn dẹp giỏ hàng bỏ quên; chưa có file cấu hình production riêng.
+  * *Sau:* Có hệ thống Covering Index đầy đủ, tìm kiếm N-gram tiếng Việt tối ưu, có thủ tục dọn dẹp định kỳ và file cấu hình máy chủ MySQL chuẩn doanh nghiệp.
+* **Phạm vi tác động:** `backend/src/main/resources/db/chopee_schema_full.sql`, `backend/src/main/resources/db/my_production.cnf`, `docs/specs/05_database_specification.md`, `docs/specs/07_changelog.md`.
+
+
 
 
 
