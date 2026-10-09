@@ -620,13 +620,13 @@
 - Modify: `README.md` (Add quickstart run instructions, credentials, API catalog, and architecture overview)
 - Test: Full End-to-End integration test across Backend, Frontend, and Database.
 
-- [ ] **Step 1: Run full backend test suite**
-  Run: `cd backend && mvn clean test`. Expected: 60/60 unit & integration tests PASS across all 13 test suites.
+- [x] **Step 1: Run full backend test suite**
+  Run: `cd backend && mvn clean test`. Expected: 60/60 unit & integration tests PASS across all 13 test suites (Verified: 60/60 PASS in 47.88s).
 
-- [ ] **Step 2: Run frontend production build**
-  Run: `cd frontend && npm run build`. Expected: Vite build succeeds with 0 errors.
+- [x] **Step 2: Run frontend production build**
+  Run: `cd frontend && npm run build`. Expected: Vite build succeeds with 0 errors (Verified: 0 errors in 18.50s).
 
-- [ ] **Step 3: Verify End-to-End user journeys**
+- [x] **Step 3: Verify End-to-End user journeys**
   - **Journey 1 (Buyer Browsing & AI Copilot):** Login as `buyer1` (pass: `123456`), browse categories, ask AI Copilot for soup ingredients, click add to cart from recommendation card.
   - **Journey 2 (Multi-Vendor Cart & Vouchers):** Add 0.5kg cà chua (Shop Đà Lạt) and 1 thùng bia (Shop Hùng Phát) to cart. View cart grouped by shop.
   - **Journey 3 (Checkout & Order Splitting):** Open checkout, select/add delivery address via Address Book, apply voucher `CHOPEE10K`, checkout with COD. Verify 2 separate orders created with common `groupOrderCode`.
@@ -634,10 +634,10 @@
   - **Journey 5 (Admin Platform Operations):** Login as `admin`, verify dashboard metrics, inspect registered shops, view platform vouchers.
   - **Journey 6 (Reviews & Rating Sync):** Mark order delivered, login as `buyer1`, submit 5-star review, verify seller receives notification and replies.
 
-- [ ] **Step 4: Update `README.md` with Quickstart Guide**
+- [x] **Step 4: Update `README.md` with Quickstart Guide**
   Document prerequisites, MySQL configuration, backend start command (`mvn spring-boot:run`), frontend start command (`npm run dev`), demo credentials table, and Swagger OpenAPI link (`http://localhost:8080/swagger-ui.html`).
 
-- [ ] **Step 5: Git commit and push to GitHub repository `Tonyisme1/Chopee`**
+- [x] **Step 5: Git commit and push to GitHub repository `Tonyisme1/Chopee`**
   Run: `git add . && git commit -m "docs: complete implementation plan and full system synchronization"`
   Run: `git push origin main`.
 
