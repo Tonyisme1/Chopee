@@ -35,6 +35,7 @@ public class ProductDetailResponse {
     private String shelfLife;
     private String origin;
     private String attributes; // JSON string containing dynamic specs (VietGAP, OCOP, technical specs)
+    private String tierVariation; // JSON string containing tier variations
     private BigDecimal ratingAvg;
     private Integer reviewCount;
     private Long categoryId;

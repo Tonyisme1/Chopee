@@ -593,12 +593,94 @@ public class DataInitializer implements CommandLineRunner {
         images.add(ProductImage.builder().product(product).imageUrl(thumbnailUrl).displayOrder(0).build());
         product.setImages(images);
 
-        // Thêm biến thể nếu là hàng tính ký hoặc đồ điện tử
+        // Thêm biến thể nếu là hàng tính ký, đồ thời trang hoặc công nghệ
         List<ProductVariant> variants = new ArrayList<>();
         if ("kg".equalsIgnoreCase(unit)) {
-            variants.add(ProductVariant.builder().product(product).variantName("Túi 500g (0.5kg)").price(sellingPrice.multiply(new BigDecimal("0.5"))).stockQuantity(stockQuantity).build());
-            variants.add(ProductVariant.builder().product(product).variantName("Túi 1.0 kg (1 ký)").price(sellingPrice).stockQuantity(stockQuantity).build());
-            variants.add(ProductVariant.builder().product(product).variantName("Túi 2.0 kg").price(sellingPrice.multiply(new BigDecimal("2.0"))).stockQuantity(stockQuantity).build());
+            product.setTierVariation("[{\"name\":\"Quy cách đóng gói\",\"options\":[\"Túi 500g (0.5kg)\",\"Túi 1.0 kg (1 ký)\",\"Túi 2.0 kg\"]}]");
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Túi 500g (0.5kg)")
+                    .sku(slug.toUpperCase() + "-500G")
+                    .attributes("{\"Quy cách đóng gói\":\"Túi 500g (0.5kg)\"}")
+                    .price(sellingPrice.multiply(new BigDecimal("0.5")))
+                    .stockQuantity(stockQuantity)
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Túi 1.0 kg (1 ký)")
+                    .sku(slug.toUpperCase() + "-1KG")
+                    .attributes("{\"Quy cách đóng gói\":\"Túi 1.0 kg (1 ký)\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(stockQuantity)
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Túi 2.0 kg")
+                    .sku(slug.toUpperCase() + "-2KG")
+                    .attributes("{\"Quy cách đóng gói\":\"Túi 2.0 kg\"}")
+                    .price(sellingPrice.multiply(new BigDecimal("2.0")))
+                    .stockQuantity(stockQuantity)
+                    .build());
+        } else if (slug.contains("ban-phim-co")) {
+            product.setTierVariation("[{\"name\":\"Loại Switch\",\"options\":[\"Switch Red\",\"Switch Brown\",\"Switch Blue\"]}]");
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Switch Red")
+                    .sku("K2PRO-RED")
+                    .attributes("{\"Loại Switch\":\"Switch Red\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("15"))
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Switch Brown")
+                    .sku("K2PRO-BROWN")
+                    .attributes("{\"Loại Switch\":\"Switch Brown\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("10"))
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Switch Blue")
+                    .sku("K2PRO-BLUE")
+                    .attributes("{\"Loại Switch\":\"Switch Blue\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("10"))
+                    .build());
+        } else if (slug.contains("ao-thun-nam")) {
+            product.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Trắng\",\"Đen\"]},{\"name\":\"Size\",\"options\":[\"M\",\"L\"]}]");
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Trắng - Size M")
+                    .sku("UNISTYLE-WHITE-M")
+                    .attributes("{\"Màu sắc\":\"Trắng\",\"Size\":\"M\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("25"))
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Trắng - Size L")
+                    .sku("UNISTYLE-WHITE-L")
+                    .attributes("{\"Màu sắc\":\"Trắng\",\"Size\":\"L\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("25"))
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Đen - Size M")
+                    .sku("UNISTYLE-BLACK-M")
+                    .attributes("{\"Màu sắc\":\"Đen\",\"Size\":\"M\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("25"))
+                    .build());
+            variants.add(ProductVariant.builder()
+                    .product(product)
+                    .variantName("Đen - Size L")
+                    .sku("UNISTYLE-BLACK-L")
+                    .attributes("{\"Màu sắc\":\"Đen\",\"Size\":\"L\"}")
+                    .price(sellingPrice)
+                    .stockQuantity(new BigDecimal("25"))
+                    .build());
         }
         product.setVariants(variants);
 

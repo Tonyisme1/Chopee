@@ -95,3 +95,4 @@ Người bán bấm 1 nút mẫu ngành hàng, hệ thống tự động thiết
     - Cập nhật tồn kho tối đa.
   - Bộ chọn số lượng đặt mua: Luôn là **Số nguyên** (`1, 2, 3...` gói/bịch/chiếc).
 - Khi thêm vào giỏ hàng: Gửi `variantId` của SKU đã chọn kèm số lượng nguyên.
+

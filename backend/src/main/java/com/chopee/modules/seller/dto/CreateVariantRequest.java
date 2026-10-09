@@ -16,6 +16,10 @@ public class CreateVariantRequest {
     @NotBlank(message = "Tên phân loại không được để trống")
     private String variantName;
 
+    private String sku;
+
+    private String attributes;
+
     @NotNull(message = "Giá phân loại không được để trống")
     private BigDecimal price;
 

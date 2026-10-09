@@ -77,6 +77,16 @@ public class SellerController {
         return ResponseEntity.ok(ApiResponse.success("Xóa sản phẩm thành công", null));
     }
 
+    @PostMapping("/products/{id}/duplicate")
+    @Operation(summary = "Nhân bản nhanh sản phẩm (1-Click Duplicate kèm bảo vệ IDOR)")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> duplicateProduct(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id) {
+        ProductDetailResponse response = sellerService.duplicateProduct(principal.getId(), id);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Nhân bản sản phẩm thành công", response));
+    }
+
     @GetMapping("/orders")
     @Operation(summary = "Lấy danh sách đơn hàng của gian hàng kèm bộ lọc trạng thái")
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getOrders(

@@ -49,6 +49,8 @@ public class CreateProductRequest {
 
     private String attributes;
 
+    private String tierVariation;
+
     private List<String> imageUrls;
 
     private List<CreateVariantRequest> variants;

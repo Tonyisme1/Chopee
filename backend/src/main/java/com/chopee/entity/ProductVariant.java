@@ -27,6 +27,12 @@ public class ProductVariant {
     @Column(nullable = false, length = 100)
     private String variantName; // Ví dụ: "Túi 500g", "Thùng 24 lon", "Màu Đỏ, Size L"
 
+    @Column(length = 100)
+    private String sku; // Mã quản lý kho hàng
+
+    @Column(columnDefinition = "TEXT")
+    private String attributes; // JSON map: {"Màu sắc": "Đen", "Dung lượng": "128GB"}
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 

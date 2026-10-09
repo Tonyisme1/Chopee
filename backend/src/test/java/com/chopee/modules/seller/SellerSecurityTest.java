@@ -405,4 +405,25 @@ class SellerSecurityTest {
         Shop lockedShop = shopRepository.findById(pendingShop.getId()).orElseThrow();
         assertEquals(ShopStatus.LOCKED, lockedShop.getStatus());
     }
+
+    @Test
+    @DisplayName("Nhân bản nhanh sản phẩm (Duplicate Product) thành công")
+    void testDuplicateProduct_Success() {
+        ProductDetailResponse cloned = sellerService.duplicateProduct(sellerA.getId(), productA.getId());
+
+        assertNotNull(cloned.getId());
+        assertNotEquals(productA.getId(), cloned.getId());
+        assertTrue(cloned.getName().startsWith("[Bản sao]"));
+        assertNotEquals(productA.getSlug(), cloned.getSlug());
+        assertEquals(0, productA.getSellingPrice().compareTo(cloned.getSellingPrice()));
+        assertEquals(productA.getShop().getId(), cloned.getShop().getId());
+    }
+
+    @Test
+    @DisplayName("Bảo vệ IDOR: Seller A không thể nhân bản sản phẩm của Shop B")
+    void testDuplicateProduct_IDOR_ThrowsForbidden() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                sellerService.duplicateProduct(sellerA.getId(), productB.getId()));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
 }

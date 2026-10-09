@@ -97,6 +97,10 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String attributes;
 
+    // Cấu trúc phân loại hàng 2 cấp dạng JSON (Chuẩn Shopee)
+    @Column(columnDefinition = "TEXT")
+    private String tierVariation;
+
     @Column(precision = 2, scale = 1)
     @Builder.Default
     private BigDecimal ratingAvg = new BigDecimal("5.0");

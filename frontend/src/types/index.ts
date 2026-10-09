@@ -112,6 +112,8 @@ export interface ProductImage {
 export interface ProductVariant {
   id: number;
   variantName: string;
+  sku?: string;
+  attributes?: string;
   price: number;
   stockQuantity: number;
 }
@@ -119,6 +121,7 @@ export interface ProductVariant {
 export interface ProductDetail extends ProductSummary {
   shelfLife?: string;
   attributes?: string; // JSON String chứa Dynamic Specs
+  tierVariation?: string; // JSON String chứa Ma trận phân loại 2 cấp
   shop: Shop;
   images: ProductImage[];
   variants: ProductVariant[];

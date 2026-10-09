@@ -125,6 +125,8 @@ public class SellerService {
                 .shelfLife(request.getShelfLife())
                 .origin(request.getOrigin())
                 .attributes(request.getAttributes())
+                .tierVariation(request.getTierVariation())
+                .hasVariants(request.getVariants() != null && !request.getVariants().isEmpty())
                 .status(ProductStatus.ACTIVE)
                 .build();
 
@@ -146,6 +148,8 @@ public class SellerService {
                 variants.add(ProductVariant.builder()
                         .product(product)
                         .variantName(vReq.getVariantName())
+                        .sku(vReq.getSku())
+                        .attributes(vReq.getAttributes())
                         .price(vReq.getPrice())
                         .stockQuantity(vReq.getStockQuantity())
                         .build());
@@ -185,6 +189,7 @@ public class SellerService {
         if (request.getShelfLife() != null) product.setShelfLife(request.getShelfLife());
         if (request.getOrigin() != null) product.setOrigin(request.getOrigin());
         if (request.getAttributes() != null) product.setAttributes(request.getAttributes());
+        if (request.getTierVariation() != null) product.setTierVariation(request.getTierVariation());
         if (request.getStatus() != null) product.setStatus(request.getStatus());
 
         if (request.getImageUrls() != null) {
@@ -200,10 +205,13 @@ public class SellerService {
 
         if (request.getVariants() != null) {
             product.getVariants().clear();
+            product.setHasVariants(!request.getVariants().isEmpty());
             for (CreateVariantRequest vReq : request.getVariants()) {
                 product.getVariants().add(ProductVariant.builder()
                         .product(product)
                         .variantName(vReq.getVariantName())
+                        .sku(vReq.getSku())
+                        .attributes(vReq.getAttributes())
                         .price(vReq.getPrice())
                         .stockQuantity(vReq.getStockQuantity())
                         .build());
@@ -211,6 +219,74 @@ public class SellerService {
         }
 
         Product saved = productRepository.save(product);
+        return productService.mapToDetailResponse(saved);
+    }
+
+    @Transactional
+    public ProductDetailResponse duplicateProduct(Long sellerId, Long productId) {
+        Shop shop = getSellerShop(sellerId);
+        Product original = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm"));
+
+        // IDOR Protection: Đảm bảo sản phẩm thuộc shop của seller
+        if (!original.getShop().getId().equals(shop.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền sao chép sản phẩm của shop khác");
+        }
+
+        String newName = "[Bản sao] " + original.getName();
+        String baseSlug = toSlug(newName);
+        String uniqueSlug = baseSlug + "-" + System.currentTimeMillis();
+
+        Product clone = Product.builder()
+                .shop(shop)
+                .category(original.getCategory())
+                .name(newName)
+                .slug(uniqueSlug)
+                .description(original.getDescription())
+                .thumbnailUrl(original.getThumbnailUrl())
+                .originalPrice(original.getOriginalPrice())
+                .sellingPrice(original.getSellingPrice())
+                .stockQuantity(original.getStockQuantity())
+                .unit(original.getUnit())
+                .minOrderQuantity(original.getMinOrderQuantity())
+                .stepQuantity(original.getStepQuantity())
+                .storageType(original.getStorageType())
+                .shelfLife(original.getShelfLife())
+                .origin(original.getOrigin())
+                .attributes(original.getAttributes())
+                .tierVariation(original.getTierVariation())
+                .hasVariants(original.getHasVariants())
+                .status(ProductStatus.ACTIVE)
+                .build();
+
+        if (original.getImages() != null && !original.getImages().isEmpty()) {
+            List<ProductImage> cloneImages = new ArrayList<>();
+            for (ProductImage img : original.getImages()) {
+                cloneImages.add(ProductImage.builder()
+                        .product(clone)
+                        .imageUrl(img.getImageUrl())
+                        .displayOrder(img.getDisplayOrder())
+                        .build());
+            }
+            clone.setImages(cloneImages);
+        }
+
+        if (original.getVariants() != null && !original.getVariants().isEmpty()) {
+            List<ProductVariant> cloneVariants = new ArrayList<>();
+            for (ProductVariant v : original.getVariants()) {
+                cloneVariants.add(ProductVariant.builder()
+                        .product(clone)
+                        .variantName(v.getVariantName())
+                        .sku(v.getSku() != null ? v.getSku() + "-COPY" : null)
+                        .attributes(v.getAttributes())
+                        .price(v.getPrice())
+                        .stockQuantity(v.getStockQuantity())
+                        .build());
+            }
+            clone.setVariants(cloneVariants);
+        }
+
+        Product saved = productRepository.save(clone);
         return productService.mapToDetailResponse(saved);
     }
 

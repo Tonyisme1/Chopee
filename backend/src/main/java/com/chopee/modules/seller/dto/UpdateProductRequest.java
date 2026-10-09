@@ -48,6 +48,8 @@ public class UpdateProductRequest {
 
     private String attributes;
 
+    private String tierVariation;
+
     private ProductStatus status;
 
     private List<String> imageUrls;

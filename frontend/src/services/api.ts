@@ -265,6 +265,9 @@ export const sellerApi = {
   deleteProduct: (id: number): Promise<ApiResponse<void>> =>
     api.delete(`/seller/products/${id}`),
 
+  duplicateProduct: (id: number): Promise<ApiResponse<ProductDetail>> =>
+    api.post(`/seller/products/${id}/duplicate`),
+
   getOrders: (params?: { status?: string; page?: number; size?: number }): Promise<ApiResponse<PageResponse<Order>>> =>
     api.get('/seller/orders', { params }),
 
