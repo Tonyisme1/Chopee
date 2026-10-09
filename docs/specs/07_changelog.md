@@ -707,6 +707,28 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* 100% danh mục trọng điểm đều sở hữu ma trận biến thể 2 cấp thực tế chuẩn hóa theo ngành hàng.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/config/DataInitializer.java`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261009-004] Tinh Chỉnh Giao Diện Chi Tiết Sản Phẩm Chuẩn Shopee (Standard Variation Buttons & Clean Stepper)
+* **Ngày thực hiện:** 2026-10-09
+* **Người thực hiện:** Frontend Lead & UI/UX Specialist
+* **Loại thay đổi:** `IMPROVED`
+* **Phân hệ ảnh hưởng:** `FRONTEND_UI`, `PRODUCT_DETAIL`
+* **Mô tả thay đổi:**
+  1. Loại bỏ toàn bộ các chuỗi đơn vị rườm rà ("1 chiếc", "1 túi", v.v.) đính kèm lộn xộn trong hộp giá bán và các nút bấm.
+  2. Xóa bỏ hoàn toàn thanh chọn nhanh số lượng nhân tạo ("Chọn nhanh số lượng: 1 túi, 2 túi, 3 túi...") và dòng "Tạm tính (1 × 1 túi)" không đúng thiết kế sàn Shopee.
+  3. Tái cấu trúc giao diện theo chuẩn Shopee Marketplace:
+     - Khung giá tinh giản: Hiển thị giá bán chính xác dạng tiền tệ, giá gốc gạch ngang và huy hiệu giảm giá phần trăm.
+     - Phân loại hàng (Mẫu / Màu sắc / Kích cỡ / Quy cách): Thiết kế hàng ngang với nhãn căn trái cố định (`w-24 md:w-28 text-gray-500`), các nút bấm biến thể dạng thẻ hình chữ nhật bo góc với góc đánh dấu tam giác đỏ và dấu tích trắng đặc trưng của Shopee khi được chọn.
+     - Ô chọn số lượng chuẩn: Gồm nút trừ `[-]`, ô nhập số nguyên `[ 1 ]`, nút cộng `[+]` và số lượng tồn kho kế bên ("xxx sản phẩm có sẵn").
+     - Hàng nút thao tác chuẩn sàn: Nút `Thêm Vào Giỏ Hàng` (nền cam nhạt, viền cam, icon giỏ hàng) và nút `Mua Ngay` (nền cam đậm đặc trưng Shopee).
+     - Hàng huy hiệu đảm bảo: "15 Ngày Đổi Trả Miễn Phí", "Chính Hãng 100%", "Miễn Phí Vận Chuyển".
+* **Lý do thay đổi:** Phản hồi người dùng về việc giao diện hiển thị đơn vị số lượng lộn xộn, khác biệt so với trải nghiệm mua hàng chuẩn của Shopee.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Hiển thị đơn vị ghép chuỗi "1 chiếc", "1 túi" trong ô giá và nút bấm, có thanh chọn nhanh 1, 2, 3 túi làm rối mắt.
+  * *Sau:* Giao diện chuẩn xác 100% theo giao diện Shopee như hình ảnh tham chiếu của người dùng.
+* **Phạm vi tác động:** `frontend/src/pages/ProductDetailPage.tsx`, `docs/specs/07_changelog.md`.
+
 
 
 

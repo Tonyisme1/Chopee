@@ -2,7 +2,7 @@ USE chopee_db;
 SET NAMES utf8mb4;
 
 -- 1. Cà chua beef Đà Lạt mọng nước (id=1)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Loại","options":["Tươi ngon","Sấy dẻo / Khô"]},{"name":"Quy cách đóng gói","options":["Túi 500g","Túi 1.0 kg","Túi 2.0 kg"]}]',
   has_variants = TRUE,
   selling_price = 14000.00
@@ -18,7 +18,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (1, 'Sấy dẻo / Khô - Túi 2.0 kg', 'CACHUA-KHO-2KG', '{"Loại":"Sấy dẻo / Khô","Quy cách đóng gói":"Túi 2.0 kg"}', 130000.00, 40);
 
 -- 2. Dưa leo baby giòn ngọt VietGAP (id=2)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Loại","options":["Tươi giòn","Ngâm chua ngọt"]},{"name":"Quy cách đóng gói","options":["Túi 500g","Túi 1.0 kg","Túi 2.0 kg"]}]',
   has_variants = TRUE,
   selling_price = 12000.00
@@ -34,7 +34,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (2, 'Ngâm chua ngọt - Túi 2.0 kg', 'DUALEO-CHUA-2KG', '{"Loại":"Ngâm chua ngọt","Quy cách đóng gói":"Túi 2.0 kg"}', 80000.00, 30);
 
 -- 3. Thịt ba chỉ heo sạch chuẩn CP (id=7)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Phân loại thịt","options":["Ba chỉ rút sườn","Sườn non heo","Nạc dăm"]},{"name":"Khối lượng khay","options":["Khay 300g","Khay 500g","Khay 1.0 kg"]}]',
   has_variants = TRUE,
   selling_price = 45000.00
@@ -53,7 +53,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (7, 'Nạc dăm - Khay 1.0 kg', 'HEO-NAC-1KG', '{"Phân loại thịt":"Nạc dăm","Khối lượng khay":"Khay 1.0 kg"}', 125000.00, 30);
 
 -- 4. Bàn phím cơ Keychron K2 Pro (id=26)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Layout","options":["Layout 75%","TKL 87 phím"]},{"name":"Switch","options":["Red Switch (Êm)","Brown Switch (Khấc)","Blue Switch (Clicky)"]}]',
   has_variants = TRUE,
   selling_price = 1650000.00
@@ -69,7 +69,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (26, 'TKL 87 phím - Blue Switch (Clicky)', 'K2PRO-87-BLUE', '{"Layout":"TKL 87 phím","Switch":"Blue Switch (Clicky)"}', 1750000.00, 10);
 
 -- 5. Áo thun nam UniStyle (id=29)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Màu sắc","options":["Trắng Basic","Đen Tuyền","Xám Tiêu"]},{"name":"Kích cỡ","options":["Size M","Size L","Size XL"]}]',
   has_variants = TRUE,
   selling_price = 180000.00
@@ -88,7 +88,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (29, 'Xám Tiêu - Size XL', 'UNISTYLE-G-XL', '{"Màu sắc":"Xám Tiêu","Kích cỡ":"Size XL"}', 180000.00, 15);
 
 -- 6. Tai nghe Sony WH-1000XM5 (id=23) - 1 tier
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Màu sắc","options":["Đen Nhám (Matte Black)","Bạc Ánh Kim (Silver)","Xanh Navy (Midnight Blue)"]}]',
   has_variants = TRUE,
   selling_price = 7990000.00
@@ -101,7 +101,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (23, 'Xanh Navy (Midnight Blue)', 'WH1000XM5-NAVY', '{"Màu sắc":"Xanh Navy (Midnight Blue)"}', 8190000.00, 15);
 
 -- 7. Thùng Bia Tiger Crystal 330ml (id=12) - 1 tier
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Quy cách đóng gói","options":["Lon lẻ 330ml","Lốc 6 lon","Thùng 24 lon"]}]',
   has_variants = TRUE,
   selling_price = 17000.00
@@ -114,7 +114,7 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (12, 'Thùng 24 lon', 'TIGER-THUNG-24', '{"Quy cách đóng gói":"Thùng 24 lon"}', 385000.00, 100);
 
 -- 8. Nồi chiên không dầu Philips HD9252 (id=17)
-UPDATE products SET 
+UPDATE products SET
   tier_variation = '[{"name":"Phiên bản dung tích","options":["Bản 4.1L (Gia đình nhỏ)","Bản 6.2L XXL (Gia đình lớn)"]},{"name":"Màu sắc","options":["Đen bóng","Trắng ngọc trai"]}]',
   has_variants = TRUE,
   selling_price = 1850000.00
@@ -136,7 +136,7 @@ VALUES (32, 1, 2, 'Gạo ST25 Ông Cua Thượng Hạng Chuẩn Gạo Ngon Thế
 '{"cert":"VietGAP, Chuẩn Quốc Tế","origin":"Sóc Trăng"}',
 '[{"name":"Loại gạo","options":["ST25 Lúa Tôm Thượng Hạng","Gạo Lứt Đỏ ST25"]},{"name":"Quy cách đóng gói","options":["Túi 1.0 kg","Bao 5.0 kg","Bao 10 kg","Bao 25 kg"]}]',
 TRUE, 5.0, 210, 'ACTIVE')
-ON DUPLICATE KEY UPDATE 
+ON DUPLICATE KEY UPDATE
   tier_variation = VALUES(tier_variation),
   has_variants = TRUE,
   selling_price = VALUES(selling_price);
@@ -161,7 +161,7 @@ VALUES (33, 4, 10, 'Điện Thoại iPhone 15 Pro Max 5G Chính Hãng Apple VN/A
 '{"chip":"Apple A17 Pro","screen":"6.7 inch Super Retina XDR OLED","origin":"Chính Hãng Apple VN/A"}',
 '[{"name":"Màu sắc","options":["Titan Tự Nhiên","Đen Midnight","Trắng Starlight"]},{"name":"Cấu hình RAM/ROM","options":["256GB","512GB","1TB"]}]',
 TRUE, 5.0, 450, 'ACTIVE')
-ON DUPLICATE KEY UPDATE 
+ON DUPLICATE KEY UPDATE
   tier_variation = VALUES(tier_variation),
   has_variants = TRUE,
   selling_price = VALUES(selling_price);
@@ -177,3 +177,4 @@ INSERT INTO product_variants (product_id, variant_name, sku, attributes, price, 
 (33, 'Trắng Starlight - 256GB', 'IP15-WHT-256', '{"Màu sắc":"Trắng Starlight","Cấu hình RAM/ROM":"256GB"}', 24990000.00, 20),
 (33, 'Trắng Starlight - 512GB', 'IP15-WHT-512', '{"Màu sắc":"Trắng Starlight","Cấu hình RAM/ROM":"512GB"}', 29990000.00, 15),
 (33, 'Trắng Starlight - 1TB', 'IP15-WHT-1TB', '{"Màu sắc":"Trắng Starlight","Cấu hình RAM/ROM":"1TB"}', 34990000.00, 10);
+
