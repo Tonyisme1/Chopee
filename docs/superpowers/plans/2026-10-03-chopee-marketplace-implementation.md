@@ -2,13 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a complete, production-grade Multi-Vendor E-Commerce Marketplace platform ("Chopee") specializing in multi-industry commerce, fresh grocery foods, beverages, and household/tech goods, integrated with a floating AI Shopping Copilot, COD & VNPay Sandbox payments, and dedicated Buyer, Seller, and Admin portals.
+**Goal:** Build a complete, production-grade Multi-Vendor E-Commerce Marketplace platform ("Chopee") specializing in multi-industry commerce, fresh grocery foods, beverages, and household/tech goods, integrated with a floating AI Shopping Copilot, COD & VNPay Sandbox payments, Address Book, Product Reviews, Voucher Discounts, and dedicated Buyer, Seller, and Admin portals.
 
-**Architecture:** Modular Monolith using Spring Boot 3 (Java 17) for the REST backend with Spring Data JPA and Spring Security 6 (Stateless JWT). A single React (Vite + TypeScript + Tailwind CSS) frontend organized into 3 nested layout portals: Client Marketplace (`/`), Seller Center (`/seller`), and Admin Management (`/admin`). MySQL 8 serves as the relational data store with ACID transaction safety for multi-vendor order splitting and atomic stock deductions.
+**Architecture:** Modular Monolith using Spring Boot 3 (Java 17) for the REST backend with Spring Data JPA and Spring Security 6 (Stateless JWT). A single React (Vite + TypeScript + Tailwind CSS) frontend organized into 3 nested layout portals: Client Marketplace (`/`), Seller Center (`/seller`), and Admin Management (`/admin`). MySQL 8 serves as the enterprise relational data store with 24 tables, 3-tier data lifecycle (Hot, Warm, Cold), covering indexes, triggers, stored procedures, views, and ACID transaction safety for multi-vendor order splitting and atomic stock deductions.
 
 **Tech Stack:** Java 17, Spring Boot 3.3.x, Spring Data JPA, Hibernate, Spring Security 6, JJWT, Springdoc OpenAPI, MySQL 8, React 18/19, TypeScript, Vite, Tailwind CSS, Lucide Icons, Zustand, Axios, VNPay Sandbox, Google Gemini 1.5 Flash API.
 
-**Spec:** [docs/superpowers/specs/2026-10-03-shopee-marketplace-design.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/docs/superpowers/specs/2026-10-03-shopee-marketplace-design.md) & [docs/specs/00_index.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly/Quan_Ly_Cho_Online/docs/specs/00_index.md).
+**Current Implementation State:**
+- **Database Layer:** 100% Complete (24 enterprise tables, 3-tier lifecycle, triggers, views, event schedulers, `chopee_schema_full.sql`).
+- **Backend API Layer:** 100% Complete (52 RESTful endpoints across 12 functional areas: Catalog, Cart, Order, Payment VNPay, Seller, Admin, AI Copilot, Health, Address Book, Product Reviews, Vouchers).
+- **Backend Quality Gates:** 60/60 JUnit integration tests passing (100% coverage across 13 test suites).
+- **Server Status:** Spring Boot running on `http://localhost:8080`, WAMP MySQL on `localhost:3306` (`chopee_db`).
+- **Frontend Current Milestone:** Transitioning into Task 11 (Frontend Core Architecture, Stores & Services).
+
+**Spec:** [docs/superpowers/specs/2026-10-03-shopee-marketplace-design.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly\Quan_Ly_Cho_Online\docs\superpowers\specs\2026-10-03-shopee-marketplace-design.md) & [docs/specs/00_index.md](file:///d:/04_Code_Projects/Du_An/Demo_Quan_Ly\Quan_Ly_Cho_Online\docs\specs\00_index.md).
 
 ## Global Constraints
 - Java version: 17 LTS; Spring Boot 3.3.x; Maven 3.9+.
@@ -23,9 +30,10 @@
 ## Review Focus
 1. Multi-vendor order splitting: A single cart with items from N shops must create exactly N independent `orders` linked by a common `group_order_code`.
 2. Stock over-selling concurrency: Concurrent purchases exceeding remaining inventory must fail cleanly with HTTP 400 and trigger a full database rollback.
-3. IDOR security: A seller authenticated for Shop A must receive HTTP 403 when attempting to mutate products or orders belonging to Shop B.
+3. IDOR security: A seller authenticated for Shop A must receive HTTP 403 when attempting to mutate products, orders, reviews, or vouchers belonging to Shop B.
 4. VNPay checksum verification: Tampered or invalid `vnp_SecureHash` in IPN webhook callbacks must be rejected with HTTP 400 and not mark orders as `PAID`.
 5. AI Copilot grounding: AI chat must enrich context with real database product items so it never hallucinates non-existent products.
+6. Voucher & Promotion validation: Enforce minimum spend, usage limit, valid date window, and single-usage rules.
 
 ---
 
@@ -68,36 +76,39 @@
 ---
 
 
-### Task 2: Core Data Model & JPA Entity Layer
+### Task 2: Core Data Model, JPA Entity Layer & Enterprise Database Architecture
 
 **Files:**
-- Create: `backend/src/main/java/com/chopee/entity/*.java`
-- Create: `backend/src/main/java/com/chopee/repository/*.java`
-- Test: `backend/src/test/java/com/chopee/repository/EntityMappingTest.java`
+- Schema: `backend/src/main/resources/db/chopee_schema_full.sql`
+- Config: `backend/src/main/resources/db/my_production.cnf`
+- Entity classes: `backend/src/main/java/com/chopee/entity/*.java` (`User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `OrderStatusHistory`, `Voucher`, `Payment`, `Review`, `ShopWallet`, `WalletTransaction`, `PayoutRequest`, `RefundRequest`, `InventoryLog`, `Notification`, `Brand`, `CategoryAttribute`, `FlashSale`, `FlashSaleItem`)
+- Repositories: `backend/src/main/java/com/chopee/repository/*.java`
+- Tests: `backend/src/test/java/com/chopee/repository/EntityMappingTest.java`
 
 **Interfaces:**
-- Produces: JPA entities (`User`, `UserAddress`, `Shop`, `Category`, `Product`, `ProductImage`, `ProductVariant`, `CartItem`, `Order`, `OrderItem`, `Voucher`, `Payment`, `Review`) and repositories.
+- Produces: 24 enterprise database tables with 3-tier storage lifecycle (Hot, Warm, Cold), covering indexes (`idx_products_cat_sold`, `idx_orders_user_created`), Vietnamese N-gram full-text search, triggers (`trg_prevent_negative_wallet`, `trg_auto_sync_has_variants`), views (`vw_active_products`, `vw_seller_financial_summary`, `vw_platform_daily_metrics`), stored procedures (`sp_cleanup_abandoned_carts`, `sp_defragment_and_analyze_tables`), and event schedulers (`evt_daily_cold_archive`, `evt_auto_update_flash_sale_status`).
 
-- [ ] **Step 1: Write integration test for entity creation and relations**
+- [x] **Step 1: Write integration test for entity creation and relations**
   Test creating a user with `ROLE_SELLER`, a shop, a category, and a product with `attributes` JSON.
+  `mvn test -Dtest=EntityMappingTest` - PASS.
 
-- [ ] **Step 2: Implement Enums and Base Entities**
-  Define `Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`.
+- [x] **Step 2: Implement Enums and Base Entities**
+  Define `Role`, `UserStatus`, `ShopType`, `ShopStatus`, `StorageType`, `ProductStatus`, `ShippingMethod`, `PaymentMethod`, `PaymentStatus`, `OrderStatus`, `DiscountType`, `CancelledBy`.
 
-- [ ] **Step 3: Implement User, Shop, Category, and Product Entities**
+- [x] **Step 3: Implement User, Shop, Category, and Product Entities**
   Include fresh food fields: `unit`, `minOrderQuantity`, `stepQuantity`, `storageType`, `shelfLife`, `origin`, and JSON `attributes` string with converter.
 
-- [ ] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment Entities**
-  Ensure `Order` contains `groupOrderCode`, `shop`, `user`, amounts, status, and shipping fields.
+- [x] **Step 4: Implement CartItem, Order, OrderItem, Voucher, Payment, Review, Address Entities**
+  Ensure `Order` contains `groupOrderCode`, `shop`, `user`, amounts, status, and shipping fields. Support multi-vendor separation and audit trail `OrderStatusHistory`.
 
-- [ ] **Step 5: Create Spring Data JPA Repositories**
-  `UserRepository`, `ShopRepository`, `CategoryRepository`, `ProductRepository`, `CartItemRepository`, `OrderRepository`, `VoucherRepository`.
+- [x] **Step 5: Create Spring Data JPA Repositories**
+  `UserRepository`, `UserAddressRepository`, `ShopRepository`, `CategoryRepository`, `ProductRepository`, `CartItemRepository`, `OrderRepository`, `VoucherRepository`, `PaymentRepository`, `ReviewRepository`.
 
-- [ ] **Step 6: Run tests to verify entity mappings**
-  Run: `mvn test -Dtest=EntityMappingTest`. Expected: PASS.
+- [x] **Step 6: Run tests to verify entity mappings and database constraints**
+  Run: `mvn test -Dtest=EntityMappingTest`. Expected: PASS (Verified with H2 in-memory and MySQL 8.4 compatibility).
 
-- [ ] **Step 7: Commit**
-  `git add backend/ && git commit -m "feat: implement JPA entities and repositories for Chopee marketplace"`
+- [x] **Step 7: Commit**
+  `git add backend/ && git commit -m "feat: implement 24 enterprise JPA entities, 3-tier DB lifecycle, and repositories"`
 
 ---
 
@@ -346,104 +357,185 @@
 
 - [x] **Step 3: Commit**
   `git add backend/ && git commit -m "feat: add realistic Vietnamese multi-industry marketplace data initializer"`
+---
+
+### Task 10B: Advanced Backend APIs: Address Book, Product Reviews & Voucher Promotion System
+
+**Files:**
+- Create: `backend/src/main/java/com/chopee/modules/address/**/*.java`
+- Create: `backend/src/main/java/com/chopee/modules/review/**/*.java`
+- Create: `backend/src/main/java/com/chopee/modules/voucher/**/*.java`
+- Test: `backend/src/test/java/com/chopee/modules/address/AddressControllerTest.java`
+- Test: `backend/src/test/java/com/chopee/modules/review/ReviewControllerTest.java`
+- Test: `backend/src/test/java/com/chopee/modules/voucher/VoucherControllerTest.java`
+
+**Interfaces:**
+- Produces: 14 RESTful endpoints covering Buyer Address Book (4), Product Reviews & Ratings with Seller Reply (4), Platform & Shop Vouchers (6). All 60/60 backend tests passing.
+
+- [x] **Step 1: Implement Address Book Module (FR-AUTH-04)**
+  `POST /api/v1/buyer/addresses`, `GET /api/v1/buyer/addresses`, `PUT /api/v1/buyer/addresses/{id}/default`, `DELETE /api/v1/buyer/addresses/{id}`.
+  Supports default address re-assignment, phone/name validation, and strict user ownership.
+  Run: `mvn test -Dtest=AddressControllerTest`. Result: PASS.
+
+- [x] **Step 2: Implement Product Reviews & Ratings Module (FR-PROD-03)**
+  `GET /api/v1/public/products/{productId}/reviews`, `POST /api/v1/buyer/reviews`, `GET /api/v1/seller/reviews`, `PUT /api/v1/seller/reviews/{id}/reply`.
+  Reviews only permitted for verified purchases of `DELIVERED` orders; automatically updates `ratingAvg` and `reviewCount` on `Product`. Seller replies protected by IDOR validation.
+  Run: `mvn test -Dtest=ReviewControllerTest`. Result: PASS.
+
+- [x] **Step 3: Implement Voucher & Promotion System (FR-PAY-03)**
+  `GET /api/v1/public/vouchers`, `GET /api/v1/public/shops/{shopId}/vouchers`, `GET /api/v1/public/vouchers/validate`, `GET /api/v1/seller/vouchers`, `POST /api/v1/seller/vouchers`, `POST /api/v1/admin/vouchers`.
+  Supports `PERCENT` (with max discount amount cap) and `FIXED_AMOUNT`, min spend check, usage limits, date window validity, and shop vs platform scope.
+  Run: `mvn test -Dtest=VoucherControllerTest`. Result: PASS.
+
+- [x] **Step 4: Seed Vouchers and Test Addresses in `DataInitializer`**
+  Pre-seed vouchers `CHOPEE10K`, `FREESHIPCHO`, `DALATFARM20`, `TECHSALE50` and sample buyer shipping addresses.
+
+- [x] **Step 5: Run full backend test suite to verify 100% pass rate**
+  Run: `mvn test`. Result: 60/60 tests PASS across 13 test suites.
+
+- [x] **Step 6: Commit**
+  `git add backend/ && git commit -m "feat: implement Address Book, Product Reviews, and Voucher APIs with 60/60 passing tests"`
 
 ---
 
-### Task 11: React Frontend - Architecture, State Stores & Layouts
+### Task 11: React Frontend - Architecture, Core API Client & State Stores
 
 **Files:**
-- Create: `frontend/src/types/*.ts`
-- Create: `frontend/src/api/axiosClient.ts`
-- Create: `frontend/src/store/useAuthStore.ts`
-- Create: `frontend/src/store/useCartStore.ts`
+- Existing: `frontend/src/types/index.ts`
+- Create: `frontend/src/services/api.ts`
+- Create: `frontend/src/stores/useAuthStore.ts`
+- Create: `frontend/src/stores/useCartStore.ts`
+- Create: `frontend/src/stores/useAddressStore.ts`
+- Create: `frontend/src/stores/useVoucherStore.ts`
 - Create: `frontend/src/layouts/MarketLayout.tsx`
 - Create: `frontend/src/layouts/SellerLayout.tsx`
 - Create: `frontend/src/layouts/AdminLayout.tsx`
 - Create: `frontend/src/components/Header.tsx`
 - Create: `frontend/src/components/Footer.tsx`
+- Create: `frontend/src/pages/auth/LoginPage.tsx`
+- Create: `frontend/src/pages/auth/RegisterPage.tsx`
+- Create: `frontend/src/pages/auth/RegisterSellerPage.tsx`
 - Modify: `frontend/src/App.tsx`
 
 **Interfaces:**
-- Produces: Navigation shell with Shopee-like top header, search bar, cart icon with live badge, user dropdown, and 3 layout routes.
+- Produces: Axios client with automatic Bearer token injection and error interceptors; Zustand stores for Auth, Cart, Address, and Vouchers; Shopee orange header with real-time cart badge; nested layout routing for Client (`/`), Seller (`/seller/*`), and Admin (`/admin/*`) portals.
 
-- [ ] **Step 1: Define TypeScript interfaces**
-  `User`, `Shop`, `Category`, `Product`, `CartItem`, `Order`, `OrderItem`, `AIChatMessage`.
+- [ ] **Step 1: Verify TypeScript DTO and Entity interfaces in `frontend/src/types/index.ts`**
+  Verify complete types: `ApiResponse<T>`, `User`, `Shop`, `Category`, `ProductSummary`, `ProductDetail`, `CartItem`, `CartResponse`, `Order`, `OrderItem`, `UserAddress`, `Voucher`, `Review`, `AIChatMessage`.
 
-- [ ] **Step 2: Configure Axios client with JWT interceptor**
-  Attach `Authorization: Bearer <token>` automatically and handle 401 redirect to login.
+- [ ] **Step 2: Implement Axios Client in `frontend/src/services/api.ts`**
+  Configure Axios instance with `baseURL: '/api/v1'`, request interceptor adding `Authorization: Bearer ${token}`, and response interceptor extracting `response.data` and handling 401 unauthenticated redirect.
 
-- [ ] **Step 3: Create Zustand stores with LocalStorage persistence**
-  `useAuthStore` (login, logout, token, user) and `useCartStore` (items, count, addItem, removeItem, fetchCart).
+- [ ] **Step 3: Implement `useAuthStore.ts` with Zustand & LocalStorage persistence**
+  Manage `token`, `user`, `isAuthenticated`, `login(emailOrUsername, password)`, `register(...)`, `registerSeller(...)`, `logout()`, and role helpers (`isSeller()`, `isAdmin()`).
 
-- [ ] **Step 4: Build MarketLayout, Header & Footer**
-  Header includes Shopee orange banner, search bar with category suggestions, cart button with badge, and links to "Kênh Người Bán" and "Quản Trị Sàn".
+- [ ] **Step 4: Implement `useCartStore.ts`, `useAddressStore.ts`, and `useVoucherStore.ts`**
+  - `useCartStore`: Fetch cart from `/api/v1/buyer/cart`, optimistic `addToCart`, `updateQuantity` (supporting fractional steps), `removeFromCart`, `clearCart`.
+  - `useAddressStore`: Fetch addresses from `/api/v1/buyer/addresses`, `addAddress`, `setDefaultAddress`, `deleteAddress`.
+  - `useVoucherStore`: Fetch platform/shop vouchers, `validateVoucher(code, orderAmount, shopId)`.
 
-- [ ] **Step 5: Setup React Router DOM routing**
-  Configure routes: `/`, `/login`, `/register`, `/seller/*`, `/admin/*`.
+- [ ] **Step 5: Implement `Header.tsx` & `Footer.tsx`**
+  Shopee orange header (`#EE4D2D`) with search input, category quick links, shopping cart icon with live item count badge, authentication dropdown (Login/Register or User name + Logout + "Kênh Người Bán" / "Quản Trị Sàn" shortcuts).
+  Footer with store info, support hotline, and marketplace policy links.
 
-- [ ] **Step 6: Build and verify frontend**
-  Run: `npm run build`. Expected: SUCCESS.
+- [ ] **Step 6: Implement Layouts (`MarketLayout.tsx`, `SellerLayout.tsx`, `AdminLayout.tsx`)**
+  - `MarketLayout`: Header + `<Outlet />` + Footer + floating AI Copilot widget.
+  - `SellerLayout`: Seller sidebar (Dashboard, Quản lý sản phẩm, Đơn hàng, Voucher, Đánh giá), topbar, and main content.
+  - `AdminLayout`: Admin sidebar (Tổng quan sàn, Duyệt gian hàng, Quản lý voucher), topbar, and main content.
 
-- [ ] **Step 7: Commit**
-  `git add frontend/ && git commit -m "feat: setup React frontend architecture, Zustand stores, and navigation layouts"`
+- [ ] **Step 7: Implement Auth Pages (`LoginPage.tsx`, `RegisterPage.tsx`, `RegisterSellerPage.tsx`)**
+  Clean login/register forms with validation, error messages, and seamless redirect to intended pages.
+
+- [ ] **Step 8: Configure React Router in `frontend/src/App.tsx`**
+  Setup `BrowserRouter` with routes: `/`, `/login`, `/register`, `/register-seller`, `/products/:id`, `/categories/:id`, `/cart`, `/checkout`, `/orders/success`, `/orders/my`, `/seller/*`, `/admin/*`.
+
+- [ ] **Step 9: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+
+- [ ] **Step 10: Commit**
+  `git add frontend/ && git commit -m "feat: implement frontend architecture, API client, Zustand stores, and navigation layouts"`
 
 ---
 
-### Task 12: React Frontend - Marketplace Homepage & Product Detail UI
+### Task 12: React Frontend - Marketplace Homepage, Product Catalog & Product Detail UI
 
 **Files:**
 - Create: `frontend/src/components/ProductCard.tsx`
 - Create: `frontend/src/components/CategoryNav.tsx`
+- Create: `frontend/src/components/ReviewList.tsx`
 - Create: `frontend/src/pages/HomePage.tsx`
 - Create: `frontend/src/pages/ProductDetailPage.tsx`
 - Create: `frontend/src/pages/CategoryPage.tsx`
 
 **Interfaces:**
-- Produces: Homepage with banners, category carousel, flash sales, fresh food badge, product grid, and interactive Product Detail page with unit picker and dynamic attributes table.
+- Produces: Dynamic Homepage with hero carousel banners, category quick-grid, "Chợ Thực Phẩm Tươi Sống Hôm Nay" highlight section, "Gia Dụng & Công Nghệ Hot", paginated product grid; Product Detail page with image gallery, seller badge, fractional quantity selector (`0.5kg` steps), technical JSON specifications table, and customer review list.
 
 - [ ] **Step 1: Implement `ProductCard.tsx`**
-  Display thumbnail, product name, selling price, original price, sold count, fresh food badge (`Tươi sống`, `Bảo quản mát`), unit badge (`kg`, `thùng`, `chiếc`).
+  Render product card with image thumbnail, discount percentage badge, product title, selling price, strike-through original price, sold count, fresh food badge (`Tươi sống`, `Bảo quản mát`), and unit badge (`kg`, `thùng`, `chiếc`).
 
-- [ ] **Step 2: Implement `HomePage.tsx`**
-  Show hero banner, category icons, "Chợ Tươi Sống Hôm Nay" section, "Gia Dụng & Công Nghệ Hot" section, and infinite scroll / paginated product list.
+- [ ] **Step 2: Implement `CategoryNav.tsx`**
+  Horizontal category carousel with category icons and links to `/categories/:id`.
 
-- [ ] **Step 3: Implement `ProductDetailPage.tsx`**
-  Image preview gallery, shop info card, quantity selector (supporting fractional steps like `0.5kg` for produce), "Thêm vào giỏ hàng" and "Mua ngay" buttons, and JSON specs table (Công suất, bảo hành, chứng nhận VietGAP...).
+- [ ] **Step 3: Implement `HomePage.tsx`**
+  Hero promotion banners, category navigation, flash sales / hot deals section, fresh grocery section with 2-hour express delivery tag, and paginated product grid with search filtering.
 
-- [ ] **Step 4: Build and verify frontend**
-  Run: `npm run build`. Expected: SUCCESS.
+- [ ] **Step 4: Implement `ReviewList.tsx`**
+  Display star rating breakdown (5-star, 4-star, ...), list of verified customer reviews with buyer name, star rating, comment, date, review images, and seller reply badge.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Implement `ProductDetailPage.tsx`**
+  Product image preview gallery, shop profile snippet (shop name, rating, address), unit selector with `minOrderQuantity` and `stepQuantity` increments, "Thêm Vào Giỏ Hàng" and "Mua Ngay" buttons, rich JSON attributes table (VietGAP, công suất, bảo hành, v.v.), and customer review list.
+
+- [ ] **Step 6: Implement `CategoryPage.tsx`**
+  Sidebar filters (price range, storage type, min rating, sorting by price / newest / sold), product grid, and pagination.
+
+- [ ] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+
+- [ ] **Step 8: Commit**
   `git add frontend/ && git commit -m "feat: implement Marketplace Homepage, Product Card, and Product Detail UI"`
 
 ---
 
-### Task 13: React Frontend - Multi-Vendor Cart & Checkout Flow
+### Task 13: React Frontend - Multi-Vendor Cart, Address Book, Vouchers & Checkout Flow
 
 **Files:**
 - Create: `frontend/src/pages/CartPage.tsx`
 - Create: `frontend/src/pages/CheckoutPage.tsx`
 - Create: `frontend/src/pages/OrderSuccessPage.tsx`
 - Create: `frontend/src/pages/MyOrdersPage.tsx`
+- Create: `frontend/src/components/AddressModal.tsx`
+- Create: `frontend/src/components/VoucherModal.tsx`
+- Create: `frontend/src/components/ReviewModal.tsx`
 
 **Interfaces:**
-- Produces: Cart grouped by shop with item checkboxes, Checkout page with shipping method options (`STANDARD` vs `EXPRESS_FRESH`), payment selection (COD vs VNPay QR), and order tracking page.
+- Produces: Multi-vendor cart grouped by shop with item checkboxes and fractional quantity updates; Checkout page with shipping address manager modal, shipping method selector (`STANDARD` vs `EXPRESS_FRESH`), platform and shop voucher applicator, checkout preview with live discount calculation, payment selector (COD vs VNPay); Order Success page; Order tracking page with order cancellation and review submission modals.
 
 - [ ] **Step 1: Implement `CartPage.tsx`**
-  Group items by `shop.name`. Allow selecting all items from a shop or individual items. Support increasing/decreasing quantity by `stepQuantity`.
+  Group cart items by `shop.name`. Checkbox per item and select-all per shop. Fractional quantity controls (`+` / `-` by `stepQuantity`). Delete item action. Shop subtotal calculation and bottom sticky checkout bar.
 
-- [ ] **Step 2: Implement `CheckoutPage.tsx`**
-  Preview sub-orders per shop with shipping fee calculation, shipping address form, payment method selector (COD, VNPay).
-  Handle order creation and redirect to VNPay Sandbox URL if selected.
+- [ ] **Step 2: Implement `AddressModal.tsx`**
+  Modal to select existing delivery address or create new address (Receiver Name, Phone, Province, District, Ward, Detail Address, Default checkbox) calling `/api/v1/buyer/addresses`.
 
-- [ ] **Step 3: Implement `OrderSuccessPage.tsx` & `MyOrdersPage.tsx`**
-  Display `groupOrderCode` and breakdown of individual shop orders. Show live status pills (`PENDING`, `SHIPPING`, `DELIVERED`).
+- [ ] **Step 3: Implement `VoucherModal.tsx`**
+  Modal displaying available shop vouchers and platform vouchers with minimum spend requirements and discount amount, with one-click "Áp dụng" button.
 
-- [ ] **Step 4: Build and verify frontend**
-  Run: `npm run build`. Expected: SUCCESS.
+- [ ] **Step 4: Implement `CheckoutPage.tsx`**
+  Delivery address card (with change address trigger opening `AddressModal`), order breakdown per shop with shipping method options (`STANDARD` vs `EXPRESS_FRESH`), voucher selection per shop and platform voucher, order preview calculation, payment method options (COD vs VNPay Sandbox QR), and "Đặt Hàng" button triggering `/api/v1/buyer/orders`. If VNPay chosen, automatically redirect to VNPay payment URL.
 
-- [ ] **Step 5: Commit**
-  `git add frontend/ && git commit -m "feat: implement multi-vendor cart, checkout, payment redirection, and order tracking"`
+- [ ] **Step 5: Implement `OrderSuccessPage.tsx`**
+  Confirmation screen displaying `groupOrderCode`, summary of split orders created per shop, shipping addresses, payment status, and button to track orders in "Đơn Mua Của Tôi".
+
+- [ ] **Step 6: Implement `MyOrdersPage.tsx` & `ReviewModal.tsx`**
+  Tabs: *Tất cả*, *Chờ xác nhận (PENDING)*, *Đang giao (SHIPPING)*, *Đã giao (DELIVERED)*, *Đã hủy (CANCELLED)*.
+  Each order card displays shop name, item list, total amount, order code, status badge.
+  Action button: "Hủy đơn hàng" if `PENDING` (calling `/api/v1/buyer/orders/{code}/cancel`).
+  Action button: "Đánh giá" if `DELIVERED` opening `ReviewModal` to submit 1-5 star rating and comment calling `/api/v1/buyer/reviews`.
+
+- [ ] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+
+- [ ] **Step 8: Commit**
+  `git add frontend/ && git commit -m "feat: implement multi-vendor cart, address book, vouchers, checkout flow and order review UI"`
 
 ---
 
@@ -454,21 +546,27 @@
 - Modify: `frontend/src/layouts/MarketLayout.tsx`
 
 **Interfaces:**
-- Produces: Floating animated button at bottom-right corner. Opens chat window with typing indicator, suggested prompts, natural language advice, and interactive product cards with direct "Thêm vào giỏ" button.
+- Produces: Floating animated button at bottom-right corner. Opens interactive chat window with Shopee orange header, typing indicator, suggested prompt chips (*"Gợi ý nguyên liệu nấu canh chua"*, *"Tìm sạc nhanh 65W cho laptop"*), AI natural language shopping recommendations, and interactive miniature product cards with direct "Thêm vào giỏ" button.
 
 - [ ] **Step 1: Implement floating chat launcher and dialog window**
-  Include Shopee orange chat header with robot avatar, minimize and close buttons.
+  Include Shopee orange chat header with robot avatar, minimize and close buttons, and smooth open/close animations.
 
 - [ ] **Step 2: Add quick suggestion prompt chips**
-  Buttons: *"Gợi ý nguyên liệu nấu canh chua 4 người"*, *"Tìm sạc nhanh 65W cho laptop"*, *"Lên thực đơn 150k mâm cơm gia đình"*, *"Thùng bia & nước ngọt tiệc 8 người"*.
+  Buttons: *"Gợi ý nguyên liệu nấu canh chua 4 người"*, *"Tìm sạc nhanh 65W cho laptop"*, *"Lên thực đơn 150k mâm cơm gia đình"*, *"Thùng bia & nước ngọt tiệc 8 người"*. Clicking a chip sends the prompt immediately.
 
-- [ ] **Step 3: Render rich message bubbles and product recommendation cards**
-  Parse suggested products returned from backend API and render miniature product cards with image, price, and one-click "Thêm vào giỏ" action triggering `useCartStore.addItem`.
+- [ ] **Step 3: Connect to Backend AI API (`/api/v1/ai/chat`)**
+  Send user messages to backend, maintain conversation history, display typing indicator while awaiting Gemini response.
 
-- [ ] **Step 4: Build and verify frontend**
-  Run: `npm run build`. Expected: SUCCESS.
+- [ ] **Step 4: Render rich message bubbles and product recommendation cards**
+  Parse suggested products returned from backend API and render miniature product cards with image, price, shop name, and one-click "Thêm vào giỏ" action triggering `useCartStore.addToCart`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Embed `AIChatWidget` into `MarketLayout.tsx`**
+  Ensure the widget appears seamlessly across all marketplace browsing pages.
+
+- [ ] **Step 6: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+
+- [ ] **Step 7: Commit**
   `git add frontend/ && git commit -m "feat: implement floating AI Shopping Copilot chat widget with rich product cards"`
 
 ---
@@ -479,51 +577,67 @@
 - Create: `frontend/src/pages/seller/SellerDashboardPage.tsx`
 - Create: `frontend/src/pages/seller/SellerProductsPage.tsx`
 - Create: `frontend/src/pages/seller/SellerOrdersPage.tsx`
+- Create: `frontend/src/pages/seller/SellerVouchersPage.tsx`
+- Create: `frontend/src/pages/seller/SellerReviewsPage.tsx`
 - Create: `frontend/src/pages/admin/AdminDashboardPage.tsx`
 - Create: `frontend/src/pages/admin/AdminShopsPage.tsx`
+- Create: `frontend/src/pages/admin/AdminVouchersPage.tsx`
 
 **Interfaces:**
-- Produces: Seller portal (`/seller`) to add/edit products with custom attributes and update order statuses; Admin portal (`/admin`) to approve shops and view platform statistics.
+- Produces: Complete Seller Center (`/seller`) for merchants to manage products (with fresh food units & JSON attributes), fulfill incoming orders (`CONFIRMED` -> `SHIPPING`), create shop vouchers, and reply to buyer reviews; Complete Admin Center (`/admin`) for platform operators to monitor GMV, approve/reject shops, and manage platform-wide discount vouchers.
 
-- [ ] **Step 1: Implement Seller Dashboard and Product Management**
-  Data table with search and pagination, modal form to add/edit product (inputs for name, price, stock, unit, storage type, shelf life, and key-value JSON attributes).
+- [ ] **Step 1: Implement Seller Dashboard (`SellerDashboardPage.tsx`)**
+  Revenue cards (Doanh thu hôm nay, Số đơn chờ xác nhận, Số sản phẩm hết hàng), order trend overview, recent order list.
 
-- [ ] **Step 2: Implement Seller Order Management**
-  View incoming orders for the seller's shop, action buttons to confirm order (`CONFIRMED`) and dispatch to shipper (`SHIPPING`).
+- [ ] **Step 2: Implement Seller Product Management (`SellerProductsPage.tsx`)**
+  Product table with search, category filter, and pagination. Modal form to add/edit product (name, price, stock, unit, storage type `NORMAL`/`FRESH`/`FROZEN_CHILLED`, shelf life, origin, and dynamic key-value attributes table).
 
-- [ ] **Step 3: Implement Admin Portal**
-  Dashboard metrics cards (total shops, total revenue, total orders), table to approve pending shop registrations or lock shops.
+- [ ] **Step 3: Implement Seller Order Management (`SellerOrdersPage.tsx`)**
+  Filter orders by status (`PENDING`, `CONFIRMED`, `SHIPPING`, `DELIVERED`, `CANCELLED`). Action buttons: "Xác nhận đơn" (`CONFIRMED`) and "Giao cho shipper" (`SHIPPING`).
 
-- [ ] **Step 4: Build and verify frontend**
-  Run: `npm run build`. Expected: SUCCESS.
+- [ ] **Step 4: Implement Seller Vouchers & Reviews (`SellerVouchersPage.tsx`, `SellerReviewsPage.tsx`)**
+  - Vouchers: List shop vouchers, modal form to create shop voucher (code, discount type, value, min order amount, max discount, start/end dates, usage limit).
+  - Reviews: List buyer reviews for shop products, modal/inline form for seller to submit reply to customer review.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Implement Admin Dashboard & Shop Management (`AdminDashboardPage.tsx`, `AdminShopsPage.tsx`)**
+  - Admin Dashboard: Platform GMV, total active shops, total orders, total buyers.
+  - Shop Management: Table of registered shops with status badges (`PENDING`, `APPROVED`, `REJECTED`, `LOCKED`). Action buttons to "Phê duyệt" (Approve), "Từ chối" (Reject), or "Khóa gian hàng" (Lock).
+
+- [ ] **Step 6: Implement Admin Platform Vouchers (`AdminVouchersPage.tsx`)**
+  Manage platform-wide vouchers applicable to all shops, toggle active/inactive status, and create new platform vouchers.
+
+- [ ] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+
+- [ ] **Step 8: Commit**
   `git add frontend/ && git commit -m "feat: implement Seller Center and Admin Management frontend portals"`
 
 ---
 
-### Task 16: End-to-End System Verification & GitHub Repository Sync
+### Task 16: End-to-End System Verification, Quality Gates & GitHub Repository Sync
 
 **Files:**
-- Modify: `README.md` (Add quickstart run instructions and credentials)
+- Modify: `README.md` (Add quickstart run instructions, credentials, API catalog, and architecture overview)
 - Test: Full End-to-End integration test across Backend, Frontend, and Database.
 
 - [ ] **Step 1: Run full backend test suite**
-  Run: `cd backend && mvn clean test`. Expected: All unit & integration tests PASS.
+  Run: `cd backend && mvn clean test`. Expected: 60/60 unit & integration tests PASS across all 13 test suites.
 
 - [ ] **Step 2: Run frontend production build**
   Run: `cd frontend && npm run build`. Expected: Vite build succeeds with 0 errors.
 
-- [ ] **Step 3: Verify End-to-End flows**
-  Test 1: Login as `buyer1`, browse categories, add 0.5kg tomato (Shop Đà Lạt) and 1 thùng bia (Shop Hùng Phát) to cart.
-  Test 2: Open AI Chat widget, ask for recipe, click add to cart from recommendation.
-  Test 3: Checkout with COD, verify 2 separate orders created with common `groupOrderCode`.
-  Test 4: Login as `seller_food`, verify order from Shop Đà Lạt is visible, update status to `SHIPPING`.
-  Test 5: Login as `admin`, verify dashboard metrics and shop listings.
+- [ ] **Step 3: Verify End-to-End user journeys**
+  - **Journey 1 (Buyer Browsing & AI Copilot):** Login as `buyer1` (pass: `123456`), browse categories, ask AI Copilot for soup ingredients, click add to cart from recommendation card.
+  - **Journey 2 (Multi-Vendor Cart & Vouchers):** Add 0.5kg cà chua (Shop Đà Lạt) and 1 thùng bia (Shop Hùng Phát) to cart. View cart grouped by shop.
+  - **Journey 3 (Checkout & Order Splitting):** Open checkout, select/add delivery address via Address Book, apply voucher `CHOPEE10K`, checkout with COD. Verify 2 separate orders created with common `groupOrderCode`.
+  - **Journey 4 (Seller Order Fulfillment):** Login as `seller_food`, verify Đà Lạt sub-order is visible, confirm order (`CONFIRMED`), dispatch order (`SHIPPING`).
+  - **Journey 5 (Admin Platform Operations):** Login as `admin`, verify dashboard metrics, inspect registered shops, view platform vouchers.
+  - **Journey 6 (Reviews & Rating Sync):** Mark order delivered, login as `buyer1`, submit 5-star review, verify seller receives notification and replies.
 
-- [ ] **Step 4: Update README.md with Quickstart Guide**
-  Document how to run MySQL, start backend with `mvn spring-boot:run`, start frontend with `npm run dev`, and list default demo accounts.
+- [ ] **Step 4: Update `README.md` with Quickstart Guide**
+  Document prerequisites, MySQL configuration, backend start command (`mvn spring-boot:run`), frontend start command (`npm run dev`), demo credentials table, and Swagger OpenAPI link (`http://localhost:8080/swagger-ui.html`).
 
-- [ ] **Step 5: Push full implementation plan and code to GitHub `Tonyisme1/Chopee`**
-  Run: `git add . && git commit -m "docs: complete detailed implementation plan for Chopee marketplace"`
+- [ ] **Step 5: Git commit and push to GitHub repository `Tonyisme1/Chopee`**
+  Run: `git add . && git commit -m "docs: complete implementation plan and full system synchronization"`
   Run: `git push origin main`.
+
