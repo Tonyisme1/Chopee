@@ -44,8 +44,10 @@ export interface UserAddress {
 }
 
 export interface AuthResponse {
-  token: string;
-  type: string;
+  accessToken: string;
+  token?: string;
+  tokenType?: string;
+  type?: string;
   user: User;
 }
 

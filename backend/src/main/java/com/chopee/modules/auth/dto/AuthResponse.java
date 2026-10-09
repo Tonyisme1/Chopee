@@ -17,5 +17,9 @@ public class AuthResponse {
     private String tokenType = "Bearer";
 
     private UserProfileResponse user;
+
+    public String getToken() {
+        return accessToken;
+    }
 }
 

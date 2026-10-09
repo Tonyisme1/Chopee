@@ -32,11 +32,14 @@ interface AuthState {
   isAdmin: () => boolean;
 }
 
-const getStoredToken = (): string | null => localStorage.getItem('chopee_token');
+const getStoredToken = (): string | null => {
+  const token = localStorage.getItem('chopee_token');
+  return token && token !== 'undefined' && token !== 'null' ? token : null;
+};
 const getStoredUser = (): User | null => {
   try {
     const raw = localStorage.getItem('chopee_user');
-    return raw ? JSON.parse(raw) : null;
+    return raw && raw !== 'undefined' && raw !== 'null' ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
@@ -58,7 +61,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const response = await authApi.login({ emailOrUsername, password });
         if (response.success && response.data) {
-          const { token, user } = response.data;
+          const raw = response.data as any;
+          const token = raw.accessToken || raw.token;
+          const user = raw.user;
+
+          if (!token) {
+            throw new Error('Không nhận được token xác thực');
+          }
+
           localStorage.setItem('chopee_token', token);
           localStorage.setItem('chopee_user', JSON.stringify(user));
           set({
@@ -84,7 +94,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const response = await authApi.register(data);
         if (response.success && response.data) {
-          const { token, user } = response.data;
+          const raw = response.data as any;
+          const token = raw.accessToken || raw.token;
+          const user = raw.user;
+
+          if (!token) {
+            throw new Error('Không nhận được token xác thực');
+          }
+
           localStorage.setItem('chopee_token', token);
           localStorage.setItem('chopee_user', JSON.stringify(user));
           set({
@@ -110,7 +127,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const response = await authApi.registerSeller(data);
         if (response.success && response.data) {
-          const { token, user } = response.data;
+          const raw = response.data as any;
+          const token = raw.accessToken || raw.token;
+          const user = raw.user;
+
+          if (!token) {
+            throw new Error('Không nhận được token xác thực');
+          }
+
           localStorage.setItem('chopee_token', token);
           localStorage.setItem('chopee_user', JSON.stringify(user));
           set({
@@ -145,7 +169,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     fetchCurrentUser: async () => {
       const token = get().token;
-      if (!token) return;
+      if (!token || token === 'undefined' || token === 'null') {
+        get().logout();
+        return;
+      }
       try {
         const response = await authApi.getMe();
         if (response.success && response.data) {
