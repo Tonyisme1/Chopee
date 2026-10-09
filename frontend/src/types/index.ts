@@ -119,6 +119,7 @@ export interface ProductVariant {
 }
 
 export interface ProductDetail extends ProductSummary {
+  description?: string;
   shelfLife?: string;
   attributes?: string; // JSON String chứa Dynamic Specs
   tierVariation?: string; // JSON String chứa Ma trận phân loại 2 cấp
