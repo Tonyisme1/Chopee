@@ -678,6 +678,35 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   - `frontend/src/pages/ProductDetailPage.tsx`
   - `docs/specs/07_changelog.md`
 
+---
+
+### 📌 [CHG-20261009-003] Hoàn tất Khởi tạo & Làm mới Dữ liệu Mẫu Ma Trận Biến Thể Đa Tầng Toàn Diện (Full Multi-Tier Variant Seeding)
+* **Ngày thực hiện:** 2026-10-09
+* **Người thực hiện:** Lead Architect & Fullstack Engineer
+* **Loại thay đổi:** `UPDATED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `SEED_DATA`, `CATALOG`
+* **Mô tả thay đổi:**
+  1. Cập nhật và kích hoạt bộ dữ liệu mẫu đa tầng (Multi-tier Variant Matrix) chuẩn mã hóa UTF-8 tiếng Việt hoàn chỉnh trong `DataInitializer.java`:
+     - 🥬 **Rau củ quả:** Cà chua beef Đà Lạt (Tươi / Sấy khô × Túi 500g / 1kg / 2kg), Dưa leo baby VietGAP (Tươi giòn / Ngâm chua ngọt × Túi 500g / 1kg / 2kg).
+     - 🥩 **Thịt sạch:** Thịt ba chỉ CP (Ba chỉ rút sườn / Sườn non heo / Nạc dăm × Khay 300g / 500g / 1kg).
+     - 🦐 **Hải sản tươi sống:** Tôm sú Cà Mau (Sống bơi oxy / Cấp đông nguyên con × Hộp 500g / Hộp 1kg).
+     - 🌾 **Lương thực:** Gạo ST25 Ông Cua Thượng Hạng (ST25 Lúa Tôm / Gạo Lứt Đỏ × Túi 1kg / Bao 5kg / Bao 10kg / Bao 25kg).
+     - 📱 **Điện thoại:** iPhone 15 Pro Max VN/A (Titan Tự Nhiên / Đen Midnight / Trắng Starlight × 256GB / 512GB / 1TB).
+     - ⌨️ **Bàn phím cơ:** Keychron K2 Pro (Layout 75% / TKL 87 phím × Red Switch / Brown Switch / Blue Switch).
+     - 🖱️ **Chuột công thái học:** Logitech MX Master 3S (Đen Xám Graphite / Trắng Xám Pale Grey).
+     - 🎧 **Tai nghe cao cấp:** Sony WH-1000XM5 (Đen Nhám / Bạc Ánh Kim / Xanh Navy).
+     - 🍳 **Gia dụng thông minh:** Nồi chiên không dầu Philips HD9252 (Bản 4.1L / Bản 6.2L XXL × Đen bóng / Trắng ngọc trai).
+     - 👕 **Thời trang:** Áo thun nam UniStyle (Trắng Basic / Đen Tuyền / Xám Tiêu × Size M / L / XL), Balo laptop chống sốc Oxford (Đen / Xám / Xanh × Bản 14 inch / 16 inch).
+     - 🥤 **Đồ uống & Giải khát:** Thùng Bia Tiger Crystal & Coca-Cola (Lon lẻ 320ml / Lốc 6 lon / Thùng 24 lon).
+  2. Bổ sung cơ chế an toàn dọn dẹp ràng buộc khóa ngoại (foreign key decoupling) với `cart_items` và `order_items` khi làm mới biến thể nhằm chống xung đột toàn vẹn dữ liệu.
+  3. Xử lý triệt để hiện tượng sai mã ký tự console (CP1258/ANSI vs UTF-8) thông qua kết nối Hibernate Session JPA nội bộ.
+  4. Đạt 100% kiểm thử: `mvn test` (62/62 PASS) và `npm run build` (PASS).
+* **Lý do thay đổi:** Cung cấp trải nghiệm thực tế, sinh động và đầy đủ cho người mua lẫn người bán theo đúng yêu cầu nghiệp vụ về tách bạch giữa thuộc tính phân loại (loại, bao bì, dung lượng, màu sắc...) và số lượng mua dạng số nguyên.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Dữ liệu biến thể mẫu chỉ có dạng 1 tầng hoặc một số sản phẩm chưa có ma trận biến thể.
+  * *Sau:* 100% danh mục trọng điểm đều sở hữu ma trận biến thể 2 cấp thực tế chuẩn hóa theo ngành hàng.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/config/DataInitializer.java`, `docs/specs/07_changelog.md`.
+
 
 
 

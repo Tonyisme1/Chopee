@@ -28,8 +28,10 @@ public class DataInitializer implements CommandLineRunner {
     private final UserAddressRepository userAddressRepository;
     private final PasswordEncoder passwordEncoder;
     private final org.springframework.core.env.Environment environment;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
+    @Transactional
     public void run(String... args) {
         if (java.util.Arrays.asList(environment.getActiveProfiles()).contains("test")) {
             return;
@@ -43,6 +45,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         seedVouchersIfEmpty();
         seedAddressesIfEmpty();
+        refreshSampleMultiTierVariants();
     }
 
     @Transactional
@@ -782,6 +785,329 @@ public class DataInitializer implements CommandLineRunner {
                         .build());
             });
         }
+    }
+
+    @Transactional
+    public void refreshSampleMultiTierVariants() {
+        log.info("Khởi tạo và làm mới ma trận phân loại hàng đa tầng (Multi-tier Variant Matrix) chuẩn UTF-8...");
+
+        try {
+            jdbcTemplate.update("DELETE FROM cart_items WHERE variant_id IS NOT NULL");
+            jdbcTemplate.update("UPDATE order_items SET variant_id = NULL WHERE variant_id IS NOT NULL");
+        } catch (Exception e) {
+            log.warn("Không thể dọn dẹp ràng buộc khóa ngoại variant: {}", e.getMessage());
+        }
+
+        // 1. Cà chua beef Đà Lạt
+        productRepository.findBySlug("ca-chua-beef-da-lat").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Loại\",\"options\":[\"Tươi ngon\",\"Sấy dẻo / Khô\"]},{\"name\":\"Quy cách đóng gói\",\"options\":[\"Túi 500g\",\"Túi 1.0 kg\",\"Túi 2.0 kg\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("14000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Tươi ngon - Túi 500g", "CACHUA-TUOI-500G", "{\"Loại\":\"Tươi ngon\",\"Quy cách đóng gói\":\"Túi 500g\"}", new BigDecimal("14000"), new BigDecimal("100")));
+            vars.add(createVariant(p, "Tươi ngon - Túi 1.0 kg", "CACHUA-TUOI-1KG", "{\"Loại\":\"Tươi ngon\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("28000"), new BigDecimal("100")));
+            vars.add(createVariant(p, "Tươi ngon - Túi 2.0 kg", "CACHUA-TUOI-2KG", "{\"Loại\":\"Tươi ngon\",\"Quy cách đóng gói\":\"Túi 2.0 kg\"}", new BigDecimal("55000"), new BigDecimal("80")));
+            vars.add(createVariant(p, "Sấy dẻo / Khô - Túi 500g", "CACHUA-KHO-500G", "{\"Loại\":\"Sấy dẻo / Khô\",\"Quy cách đóng gói\":\"Túi 500g\"}", new BigDecimal("35000"), new BigDecimal("50")));
+            vars.add(createVariant(p, "Sấy dẻo / Khô - Túi 1.0 kg", "CACHUA-KHO-1KG", "{\"Loại\":\"Sấy dẻo / Khô\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("68000"), new BigDecimal("50")));
+            vars.add(createVariant(p, "Sấy dẻo / Khô - Túi 2.0 kg", "CACHUA-KHO-2KG", "{\"Loại\":\"Sấy dẻo / Khô\",\"Quy cách đóng gói\":\"Túi 2.0 kg\"}", new BigDecimal("130000"), new BigDecimal("40")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 2. Dưa leo baby
+        productRepository.findBySlug("dua-leo-baby-gion-ngot").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Loại\",\"options\":[\"Tươi giòn\",\"Ngâm chua ngọt\"]},{\"name\":\"Quy cách đóng gói\",\"options\":[\"Túi 500g\",\"Túi 1.0 kg\",\"Túi 2.0 kg\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("12000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Tươi giòn - Túi 500g", "DUALEO-TUOI-500G", "{\"Loại\":\"Tươi giòn\",\"Quy cách đóng gói\":\"Túi 500g\"}", new BigDecimal("12000"), new BigDecimal("80")));
+            vars.add(createVariant(p, "Tươi giòn - Túi 1.0 kg", "DUALEO-TUOI-1KG", "{\"Loại\":\"Tươi giòn\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("24000"), new BigDecimal("80")));
+            vars.add(createVariant(p, "Tươi giòn - Túi 2.0 kg", "DUALEO-TUOI-2KG", "{\"Loại\":\"Tươi giòn\",\"Quy cách đóng gói\":\"Túi 2.0 kg\"}", new BigDecimal("46000"), new BigDecimal("60")));
+            vars.add(createVariant(p, "Ngâm chua ngọt - Túi 500g", "DUALEO-CHUA-500G", "{\"Loại\":\"Ngâm chua ngọt\",\"Quy cách đóng gói\":\"Túi 500g\"}", new BigDecimal("22000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Ngâm chua ngọt - Túi 1.0 kg", "DUALEO-CHUA-1KG", "{\"Loại\":\"Ngâm chua ngọt\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("42000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Ngâm chua ngọt - Túi 2.0 kg", "DUALEO-CHUA-2KG", "{\"Loại\":\"Ngâm chua ngọt\",\"Quy cách đóng gói\":\"Túi 2.0 kg\"}", new BigDecimal("80000"), new BigDecimal("30")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 3. Thịt ba chỉ heo sạch chuẩn CP
+        productRepository.findBySlug("thit-ba-chi-heo-sach-cp").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Phân loại thịt\",\"options\":[\"Ba chỉ rút sườn\",\"Sườn non heo\",\"Nạc dăm\"]},{\"name\":\"Khối lượng khay\",\"options\":[\"Khay 300g\",\"Khay 500g\",\"Khay 1.0 kg\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("40000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Ba chỉ rút sườn - Khay 300g", "HEO-BACHI-300G", "{\"Phân loại thịt\":\"Ba chỉ rút sườn\",\"Khối lượng khay\":\"Khay 300g\"}", new BigDecimal("45000"), new BigDecimal("50")));
+            vars.add(createVariant(p, "Ba chỉ rút sườn - Khay 500g", "HEO-BACHI-500G", "{\"Phân loại thịt\":\"Ba chỉ rút sườn\",\"Khối lượng khay\":\"Khay 500g\"}", new BigDecimal("75000"), new BigDecimal("50")));
+            vars.add(createVariant(p, "Ba chỉ rút sườn - Khay 1.0 kg", "HEO-BACHI-1KG", "{\"Phân loại thịt\":\"Ba chỉ rút sườn\",\"Khối lượng khay\":\"Khay 1.0 kg\"}", new BigDecimal("145000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Sườn non heo - Khay 300g", "HEO-SUON-300G", "{\"Phân loại thịt\":\"Sườn non heo\",\"Khối lượng khay\":\"Khay 300g\"}", new BigDecimal("55000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Sườn non heo - Khay 500g", "HEO-SUON-500G", "{\"Phân loại thịt\":\"Sườn non heo\",\"Khối lượng khay\":\"Khay 500g\"}", new BigDecimal("90000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Sườn non heo - Khay 1.0 kg", "HEO-SUON-1KG", "{\"Phân loại thịt\":\"Sườn non heo\",\"Khối lượng khay\":\"Khay 1.0 kg\"}", new BigDecimal("175000"), new BigDecimal("30")));
+            vars.add(createVariant(p, "Nạc dăm - Khay 300g", "HEO-NAC-300G", "{\"Phân loại thịt\":\"Nạc dăm\",\"Khối lượng khay\":\"Khay 300g\"}", new BigDecimal("40000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Nạc dăm - Khay 500g", "HEO-NAC-500G", "{\"Phân loại thịt\":\"Nạc dăm\",\"Khối lượng khay\":\"Khay 500g\"}", new BigDecimal("65000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Nạc dăm - Khay 1.0 kg", "HEO-NAC-1KG", "{\"Phân loại thịt\":\"Nạc dăm\",\"Khối lượng khay\":\"Khay 1.0 kg\"}", new BigDecimal("125000"), new BigDecimal("30")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 4. Bàn phím cơ Keychron K2 Pro
+        productRepository.findBySlug("ban-phim-co-keychron-k2-pro").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Layout\",\"options\":[\"Layout 75%\",\"TKL 87 phím\"]},{\"name\":\"Switch\",\"options\":[\"Red Switch (Êm)\",\"Brown Switch (Khấc)\",\"Blue Switch (Clicky)\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("1650000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Layout 75% - Red Switch (Êm)", "K2PRO-75-RED", "{\"Layout\":\"Layout 75%\",\"Switch\":\"Red Switch (Êm)\"}", new BigDecimal("1650000"), new BigDecimal("25")));
+            vars.add(createVariant(p, "Layout 75% - Brown Switch (Khấc)", "K2PRO-75-BROWN", "{\"Layout\":\"Layout 75%\",\"Switch\":\"Brown Switch (Khấc)\"}", new BigDecimal("1650000"), new BigDecimal("20")));
+            vars.add(createVariant(p, "Layout 75% - Blue Switch (Clicky)", "K2PRO-75-BLUE", "{\"Layout\":\"Layout 75%\",\"Switch\":\"Blue Switch (Clicky)\"}", new BigDecimal("1650000"), new BigDecimal("15")));
+            vars.add(createVariant(p, "TKL 87 phím - Red Switch (Êm)", "K2PRO-87-RED", "{\"Layout\":\"TKL 87 phím\",\"Switch\":\"Red Switch (Êm)\"}", new BigDecimal("1750000"), new BigDecimal("20")));
+            vars.add(createVariant(p, "TKL 87 phím - Brown Switch (Khấc)", "K2PRO-87-BROWN", "{\"Layout\":\"TKL 87 phím\",\"Switch\":\"Brown Switch (Khấc)\"}", new BigDecimal("1750000"), new BigDecimal("15")));
+            vars.add(createVariant(p, "TKL 87 phím - Blue Switch (Clicky)", "K2PRO-87-BLUE", "{\"Layout\":\"TKL 87 phím\",\"Switch\":\"Blue Switch (Clicky)\"}", new BigDecimal("1750000"), new BigDecimal("10")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 5. Áo thun nam UniStyle
+        productRepository.findBySlug("ao-thun-nam-cotton-tron-unistyle").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Trắng Basic\",\"Đen Tuyền\",\"Xám Tiêu\"]},{\"name\":\"Kích cỡ\",\"options\":[\"Size M\",\"Size L\",\"Size XL\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("180000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            for (String color : new String[]{"Trắng Basic", "Đen Tuyền", "Xám Tiêu"}) {
+                for (String size : new String[]{"Size M", "Size L", "Size XL"}) {
+                    String sku = "UNISTYLE-" + (color.contains("Trắng") ? "W" : color.contains("Đen") ? "B" : "G") + "-" + size.replace("Size ", "");
+                    vars.add(createVariant(p, color + " - " + size, sku, "{\"Màu sắc\":\"" + color + "\",\"Kích cỡ\":\"" + size + "\"}", new BigDecimal("180000"), new BigDecimal("30")));
+                }
+            }
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 6. Tai nghe Sony WH-1000XM5
+        productRepository.findBySlug("tai-nghe-sony-wh-1000xm5").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Đen Nhám (Matte Black)\",\"Bạc Ánh Kim (Silver)\",\"Xanh Navy (Midnight Blue)\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("7990000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Đen Nhám (Matte Black)", "WH1000XM5-BLACK", "{\"Màu sắc\":\"Đen Nhám (Matte Black)\"}", new BigDecimal("7990000"), new BigDecimal("30")));
+            vars.add(createVariant(p, "Bạc Ánh Kim (Silver)", "WH1000XM5-SILVER", "{\"Màu sắc\":\"Bạc Ánh Kim (Silver)\"}", new BigDecimal("7990000"), new BigDecimal("25")));
+            vars.add(createVariant(p, "Xanh Navy (Midnight Blue)", "WH1000XM5-NAVY", "{\"Màu sắc\":\"Xanh Navy (Midnight Blue)\"}", new BigDecimal("8190000"), new BigDecimal("15")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 7. Thùng Bia Tiger Crystal 330ml
+        productRepository.findBySlug("thung-24-lon-bia-tiger-crystal").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Quy cách đóng gói\",\"options\":[\"Lon lẻ 330ml\",\"Lốc 6 lon\",\"Thùng 24 lon\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("17000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Lon lẻ 330ml", "TIGER-LON-330", "{\"Quy cách đóng gói\":\"Lon lẻ 330ml\"}", new BigDecimal("17000"), new BigDecimal("300")));
+            vars.add(createVariant(p, "Lốc 6 lon", "TIGER-LOC-6", "{\"Quy cách đóng gói\":\"Lốc 6 lon\"}", new BigDecimal("99000"), new BigDecimal("150")));
+            vars.add(createVariant(p, "Thùng 24 lon", "TIGER-THUNG-24", "{\"Quy cách đóng gói\":\"Thùng 24 lon\"}", new BigDecimal("385000"), new BigDecimal("100")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 8. Nồi chiên không dầu Philips HD9252
+        productRepository.findBySlug("noi-chien-khong-dau-philips-hd9252").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Phiên bản dung tích\",\"options\":[\"Bản 4.1L (Gia đình nhỏ)\",\"Bản 6.2L XXL (Gia đình lớn)\"]},{\"name\":\"Màu sắc\",\"options\":[\"Đen bóng\",\"Trắng ngọc trai\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("1850000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Bản 4.1L (Gia đình nhỏ) - Đen bóng", "PHILIPS-41L-BLK", "{\"Phiên bản dung tích\":\"Bản 4.1L (Gia đình nhỏ)\",\"Màu sắc\":\"Đen bóng\"}", new BigDecimal("1850000"), new BigDecimal("25")));
+            vars.add(createVariant(p, "Bản 4.1L (Gia đình nhỏ) - Trắng ngọc trai", "PHILIPS-41L-WHT", "{\"Phiên bản dung tích\":\"Bản 4.1L (Gia đình nhỏ)\",\"Màu sắc\":\"Trắng ngọc trai\"}", new BigDecimal("1950000"), new BigDecimal("20")));
+            vars.add(createVariant(p, "Bản 6.2L XXL (Gia đình lớn) - Đen bóng", "PHILIPS-62L-BLK", "{\"Phiên bản dung tích\":\"Bản 6.2L XXL (Gia đình lớn)\",\"Màu sắc\":\"Đen bóng\"}", new BigDecimal("2850000"), new BigDecimal("20")));
+            vars.add(createVariant(p, "Bản 6.2L XXL (Gia đình lớn) - Trắng ngọc trai", "PHILIPS-62L-WHT", "{\"Phiên bản dung tích\":\"Bản 6.2L XXL (Gia đình lớn)\",\"Màu sắc\":\"Trắng ngọc trai\"}", new BigDecimal("2950000"), new BigDecimal("15")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 9. Thêm hoặc Cập nhật Gạo ST25 Ông Cua
+        shopRepository.findBySlug("nong-san-sach-da-lat").ifPresent(shop -> {
+            categoryRepository.findBySlug("rau-cu-qua-tuoi").ifPresent(cat -> {
+                Product gao = productRepository.findBySlug("gao-st25-ong-cua-thuong-hang")
+                        .orElseGet(() -> Product.builder()
+                                .shop(shop)
+                                .category(cat)
+                                .slug("gao-st25-ong-cua-thuong-hang")
+                                .build());
+
+                gao.setShop(shop);
+                gao.setCategory(cat);
+                gao.setName("Gạo ST25 Ông Cua Thượng Hạng Chuẩn Gạo Ngon Thế Giới");
+                gao.setDescription("Gạo ST25 đạt giải gạo ngon nhất thế giới. Hạt thon dài, trắng trong, dẻo thơm mùi lá dứa tự nhiên dù để nguội.");
+                gao.setThumbnailUrl("https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500");
+                gao.setOriginalPrice(new BigDecimal("220000"));
+                gao.setSellingPrice(new BigDecimal("38000"));
+                gao.setStockQuantity(new BigDecimal("500"));
+                gao.setSoldQuantity(new BigDecimal("142"));
+                gao.setUnit("bao");
+                gao.setStepQuantity(BigDecimal.ONE);
+                gao.setMinOrderQuantity(BigDecimal.ONE);
+                gao.setStorageType(StorageType.NORMAL);
+                gao.setShelfLife("12 tháng");
+                gao.setOrigin("Sóc Trăng, Việt Nam");
+                gao.setAttributes("{\"cert\":\"VietGAP, Chuẩn Quốc Tế\",\"origin\":\"Sóc Trăng\"}");
+                gao.setTierVariation("[{\"name\":\"Loại gạo\",\"options\":[\"ST25 Lúa Tôm Thượng Hạng\",\"Gạo Lứt Đỏ ST25\"]},{\"name\":\"Quy cách đóng gói\",\"options\":[\"Túi 1.0 kg\",\"Bao 5.0 kg\",\"Bao 10 kg\",\"Bao 25 kg\"]}]");
+                gao.setHasVariants(true);
+                gao.setRatingAvg(new BigDecimal("5.0"));
+                gao.setReviewCount(210);
+                gao.setStatus(ProductStatus.ACTIVE);
+
+                if (gao.getImages() == null) {
+                    gao.setImages(new ArrayList<>());
+                }
+                if (gao.getImages().isEmpty()) {
+                    gao.getImages().add(ProductImage.builder().product(gao).imageUrl("https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500").displayOrder(0).build());
+                }
+
+                List<ProductVariant> vars = new ArrayList<>();
+                vars.add(createVariant(gao, "ST25 Lúa Tôm Thượng Hạng - Túi 1.0 kg", "ST25-TOM-1KG", "{\"Loại gạo\":\"ST25 Lúa Tôm Thượng Hạng\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("38000"), new BigDecimal("100")));
+                vars.add(createVariant(gao, "ST25 Lúa Tôm Thượng Hạng - Bao 5.0 kg", "ST25-TOM-5KG", "{\"Loại gạo\":\"ST25 Lúa Tôm Thượng Hạng\",\"Quy cách đóng gói\":\"Bao 5.0 kg\"}", new BigDecimal("180000"), new BigDecimal("100")));
+                vars.add(createVariant(gao, "ST25 Lúa Tôm Thượng Hạng - Bao 10 kg", "ST25-TOM-10KG", "{\"Loại gạo\":\"ST25 Lúa Tôm Thượng Hạng\",\"Quy cách đóng gói\":\"Bao 10 kg\"}", new BigDecimal("350000"), new BigDecimal("80")));
+                vars.add(createVariant(gao, "ST25 Lúa Tôm Thượng Hạng - Bao 25 kg", "ST25-TOM-25KG", "{\"Loại gạo\":\"ST25 Lúa Tôm Thượng Hạng\",\"Quy cách đóng gói\":\"Bao 25 kg\"}", new BigDecimal("850000"), new BigDecimal("50")));
+                vars.add(createVariant(gao, "Gạo Lứt Đỏ ST25 - Túi 1.0 kg", "ST25-LUT-1KG", "{\"Loại gạo\":\"Gạo Lứt Đỏ ST25\",\"Quy cách đóng gói\":\"Túi 1.0 kg\"}", new BigDecimal("42000"), new BigDecimal("80")));
+                vars.add(createVariant(gao, "Gạo Lứt Đỏ ST25 - Bao 5.0 kg", "ST25-LUT-5KG", "{\"Loại gạo\":\"Gạo Lứt Đỏ ST25\",\"Quy cách đóng gói\":\"Bao 5.0 kg\"}", new BigDecimal("200000"), new BigDecimal("80")));
+                vars.add(createVariant(gao, "Gạo Lứt Đỏ ST25 - Bao 10 kg", "ST25-LUT-10KG", "{\"Loại gạo\":\"Gạo Lứt Đỏ ST25\",\"Quy cách đóng gói\":\"Bao 10 kg\"}", new BigDecimal("390000"), new BigDecimal("60")));
+                vars.add(createVariant(gao, "Gạo Lứt Đỏ ST25 - Bao 25 kg", "ST25-LUT-25KG", "{\"Loại gạo\":\"Gạo Lứt Đỏ ST25\",\"Quy cách đóng gói\":\"Bao 25 kg\"}", new BigDecimal("950000"), new BigDecimal("40")));
+                gao.getVariants().clear();
+                gao.getVariants().addAll(vars);
+                productRepository.save(gao);
+            });
+        });
+
+        // 10. Thêm hoặc Cập nhật iPhone 15 Pro Max
+        shopRepository.findBySlug("techzone-official-store").ifPresent(shop -> {
+            categoryRepository.findBySlug("phu-kien-cong-nghe").ifPresent(cat -> {
+                Product phone = productRepository.findBySlug("iphone-15-pro-max-vna")
+                        .orElseGet(() -> Product.builder()
+                                .shop(shop)
+                                .category(cat)
+                                .slug("iphone-15-pro-max-vna")
+                                .build());
+
+                phone.setShop(shop);
+                phone.setCategory(cat);
+                phone.setName("Điện Thoại iPhone 15 Pro Max 5G Chính Hãng Apple VN/A");
+                phone.setDescription("Khung viền Titan chuẩn hàng không vũ trụ, chip A17 Pro mạnh mẽ vượt trội, camera zoom quang học 5x sắc nét đỉnh cao.");
+                phone.setThumbnailUrl("https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500");
+                phone.setOriginalPrice(new BigDecimal("34990000"));
+                phone.setSellingPrice(new BigDecimal("24990000"));
+                phone.setStockQuantity(new BigDecimal("150"));
+                phone.setSoldQuantity(new BigDecimal("86"));
+                phone.setUnit("chiếc");
+                phone.setStepQuantity(BigDecimal.ONE);
+                phone.setMinOrderQuantity(BigDecimal.ONE);
+                phone.setStorageType(StorageType.NORMAL);
+                phone.setShelfLife("12 tháng bảo hành chính hãng");
+                phone.setOrigin("Chính Hãng Apple VN/A");
+                phone.setAttributes("{\"chip\":\"Apple A17 Pro\",\"screen\":\"6.7 inch Super Retina XDR OLED\",\"origin\":\"Chính Hãng Apple VN/A\"}");
+                phone.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Titan Tự Nhiên\",\"Đen Midnight\",\"Trắng Starlight\"]},{\"name\":\"Cấu hình RAM/ROM\",\"options\":[\"256GB\",\"512GB\",\"1TB\"]}]");
+                phone.setHasVariants(true);
+                phone.setRatingAvg(new BigDecimal("5.0"));
+                phone.setReviewCount(450);
+                phone.setStatus(ProductStatus.ACTIVE);
+
+                if (phone.getImages() == null) {
+                    phone.setImages(new ArrayList<>());
+                }
+                if (phone.getImages().isEmpty()) {
+                    phone.getImages().add(ProductImage.builder().product(phone).imageUrl("https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500").displayOrder(0).build());
+                }
+
+                List<ProductVariant> vars = new ArrayList<>();
+                for (String color : new String[]{"Titan Tự Nhiên", "Đen Midnight", "Trắng Starlight"}) {
+                    for (String cap : new String[]{"256GB", "512GB", "1TB"}) {
+                        BigDecimal pr = cap.equals("256GB") ? new BigDecimal("24990000") : cap.equals("512GB") ? new BigDecimal("29990000") : new BigDecimal("34990000");
+                        String sku = "IP15-" + (color.contains("Titan") ? "NAT" : color.contains("Đen") ? "BLK" : "WHT") + "-" + cap;
+                        vars.add(createVariant(phone, color + " - " + cap, sku, "{\"Màu sắc\":\"" + color + "\",\"Cấu hình RAM/ROM\":\"" + cap + "\"}", pr, new BigDecimal("25")));
+                    }
+                }
+                phone.getVariants().clear();
+                phone.getVariants().addAll(vars);
+                productRepository.save(phone);
+            });
+        });
+
+        // 11. Tôm sú tươi sống Cà Mau
+        productRepository.findBySlug("tom-su-tuoi-song-ca-mau").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Quy cách bảo quản\",\"options\":[\"Tôm sống bơi oxy\",\"Cấp đông nguyên con\"]},{\"name\":\"Khối lượng đóng gói\",\"options\":[\"Hộp 500g (12-14 con)\",\"Hộp 1.0 kg (25-28 con)\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("120000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Tôm sống bơi oxy - Hộp 500g (12-14 con)", "TOMSU-LIVE-500G", "{\"Quy cách bảo quản\":\"Tôm sống bơi oxy\",\"Khối lượng đóng gói\":\"Hộp 500g (12-14 con)\"}", new BigDecimal("135000"), new BigDecimal("40")));
+            vars.add(createVariant(p, "Tôm sống bơi oxy - Hộp 1.0 kg (25-28 con)", "TOMSU-LIVE-1KG", "{\"Quy cách bảo quản\":\"Tôm sống bơi oxy\",\"Khối lượng đóng gói\":\"Hộp 1.0 kg (25-28 con)\"}", new BigDecimal("260000"), new BigDecimal("30")));
+            vars.add(createVariant(p, "Cấp đông nguyên con - Hộp 500g (12-14 con)", "TOMSU-FROZEN-500G", "{\"Quy cách bảo quản\":\"Cấp đông nguyên con\",\"Khối lượng đóng gói\":\"Hộp 500g (12-14 con)\"}", new BigDecimal("120000"), new BigDecimal("50")));
+            vars.add(createVariant(p, "Cấp đông nguyên con - Hộp 1.0 kg (25-28 con)", "TOMSU-FROZEN-1KG", "{\"Quy cách bảo quản\":\"Cấp đông nguyên con\",\"Khối lượng đóng gói\":\"Hộp 1.0 kg (25-28 con)\"}", new BigDecimal("230000"), new BigDecimal("40")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 12. Chuột không dây Logitech MX Master 3S
+        productRepository.findBySlug("chuot-logitech-mx-master-3s").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Đen Xám (Graphite)\",\"Trắng Xám (Pale Grey)\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("2190000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Đen Xám (Graphite)", "MX3S-GRAPHITE", "{\"Màu sắc\":\"Đen Xám (Graphite)\"}", new BigDecimal("2190000"), new BigDecimal("35")));
+            vars.add(createVariant(p, "Trắng Xám (Pale Grey)", "MX3S-PALEGREY", "{\"Màu sắc\":\"Trắng Xám (Pale Grey)\"}", new BigDecimal("2190000"), new BigDecimal("25")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 13. Balo laptop chống sốc UniStyle
+        productRepository.findBySlug("balo-laptop-chong-soc-unistyle").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Màu sắc\",\"options\":[\"Đen Classic\",\"Xám Tro\",\"Xanh Navy\"]},{\"name\":\"Kích cỡ\",\"options\":[\"Bản Tiêu chuẩn 14 inch\",\"Bản Mở rộng 15.6 - 16 inch\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("389000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            for (String color : new String[]{"Đen Classic", "Xám Tro", "Xanh Navy"}) {
+                for (String size : new String[]{"Bản Tiêu chuẩn 14 inch", "Bản Mở rộng 15.6 - 16 inch"}) {
+                    BigDecimal pr = size.contains("Tiêu chuẩn") ? new BigDecimal("389000") : new BigDecimal("429000");
+                    String sku = "BALO-" + (color.contains("Đen") ? "BLK" : color.contains("Xám") ? "GRY" : "NVY") + (size.contains("14") ? "-14" : "-16");
+                    vars.add(createVariant(p, color + " - " + size, sku, "{\"Màu sắc\":\"" + color + "\",\"Kích cỡ\":\"" + size + "\"}", pr, new BigDecimal("25")));
+                }
+            }
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        // 14. Thùng 24 lon Nước ngọt Coca-Cola
+        productRepository.findBySlug("thung-24-lon-coca-cola-320ml").ifPresent(p -> {
+            p.setTierVariation("[{\"name\":\"Quy cách đóng gói\",\"options\":[\"Lon lẻ 320ml\",\"Lốc 6 lon\",\"Thùng 24 lon\"]}]");
+            p.setHasVariants(true);
+            p.setSellingPrice(new BigDecimal("10000"));
+            List<ProductVariant> vars = new ArrayList<>();
+            vars.add(createVariant(p, "Lon lẻ 320ml", "COCA-LON-320", "{\"Quy cách đóng gói\":\"Lon lẻ 320ml\"}", new BigDecimal("10000"), new BigDecimal("500")));
+            vars.add(createVariant(p, "Lốc 6 lon", "COCA-LOC-6", "{\"Quy cách đóng gói\":\"Lốc 6 lon\"}", new BigDecimal("56000"), new BigDecimal("200")));
+            vars.add(createVariant(p, "Thùng 24 lon", "COCA-THUNG-24", "{\"Quy cách đóng gói\":\"Thùng 24 lon\"}", new BigDecimal("195000"), new BigDecimal("150")));
+            p.getVariants().clear();
+            p.getVariants().addAll(vars);
+            productRepository.save(p);
+        });
+
+        log.info("Cập nhật dữ liệu ma trận phân loại hàng hoàn tất thành công!");
+    }
+
+    private ProductVariant createVariant(Product p, String name, String sku, String attrs, BigDecimal price, BigDecimal stock) {
+        return ProductVariant.builder()
+                .product(p)
+                .variantName(name)
+                .sku(sku)
+                .attributes(attrs)
+                .price(price)
+                .stockQuantity(stock)
+                .build();
     }
 }
 
