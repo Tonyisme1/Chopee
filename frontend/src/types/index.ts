@@ -201,8 +201,13 @@ export interface OrderStatusHistory {
 export interface Review {
   id: number;
   productId: number;
+  productName?: string;
+  variantId?: number;
+  variantName?: string;
   userId: number;
-  orderItemId: number;
+  userFullName?: string;
+  userAvatarUrl?: string;
+  orderItemId?: number;
   rating: number;
   comment?: string;
   imagesJson?: string;
@@ -240,6 +245,7 @@ export type DiscountType = 'PERCENT' | 'FIXED_AMOUNT';
 export interface Voucher {
   id: number;
   code: string;
+  name?: string;
   shopId?: number;
   shopName?: string;
   discountType: DiscountType;

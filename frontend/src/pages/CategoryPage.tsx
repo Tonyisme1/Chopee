@@ -317,3 +317,4 @@ export const CategoryPage: React.FC = () => {
   );
 };
 export default CategoryPage;
+

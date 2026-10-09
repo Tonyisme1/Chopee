@@ -104,3 +104,4 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   );
 };
 export default CategoryNav;
+

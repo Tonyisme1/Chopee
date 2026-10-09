@@ -586,30 +586,30 @@
 **Interfaces:**
 - Produces: Complete Seller Center (`/seller`) for merchants to manage products (with fresh food units & JSON attributes), fulfill incoming orders (`CONFIRMED` -> `SHIPPING`), create shop vouchers, and reply to buyer reviews; Complete Admin Center (`/admin`) for platform operators to monitor GMV, approve/reject shops, and manage platform-wide discount vouchers.
 
-- [ ] **Step 1: Implement Seller Dashboard (`SellerDashboardPage.tsx`)**
+- [x] **Step 1: Implement Seller Dashboard (`SellerDashboardPage.tsx`)**
   Revenue cards (Doanh thu hôm nay, Số đơn chờ xác nhận, Số sản phẩm hết hàng), order trend overview, recent order list.
 
-- [ ] **Step 2: Implement Seller Product Management (`SellerProductsPage.tsx`)**
+- [x] **Step 2: Implement Seller Product Management (`SellerProductsPage.tsx`)**
   Product table with search, category filter, and pagination. Modal form to add/edit product (name, price, stock, unit, storage type `NORMAL`/`FRESH`/`FROZEN_CHILLED`, shelf life, origin, and dynamic key-value attributes table).
 
-- [ ] **Step 3: Implement Seller Order Management (`SellerOrdersPage.tsx`)**
+- [x] **Step 3: Implement Seller Order Management (`SellerOrdersPage.tsx`)**
   Filter orders by status (`PENDING`, `CONFIRMED`, `SHIPPING`, `DELIVERED`, `CANCELLED`). Action buttons: "Xác nhận đơn" (`CONFIRMED`) and "Giao cho shipper" (`SHIPPING`).
 
-- [ ] **Step 4: Implement Seller Vouchers & Reviews (`SellerVouchersPage.tsx`, `SellerReviewsPage.tsx`)**
+- [x] **Step 4: Implement Seller Vouchers & Reviews (`SellerVouchersPage.tsx`, `SellerReviewsPage.tsx`)**
   - Vouchers: List shop vouchers, modal form to create shop voucher (code, discount type, value, min order amount, max discount, start/end dates, usage limit).
   - Reviews: List buyer reviews for shop products, modal/inline form for seller to submit reply to customer review.
 
-- [ ] **Step 5: Implement Admin Dashboard & Shop Management (`AdminDashboardPage.tsx`, `AdminShopsPage.tsx`)**
+- [x] **Step 5: Implement Admin Dashboard & Shop Management (`AdminDashboardPage.tsx`, `AdminShopsPage.tsx`)**
   - Admin Dashboard: Platform GMV, total active shops, total orders, total buyers.
   - Shop Management: Table of registered shops with status badges (`PENDING`, `APPROVED`, `REJECTED`, `LOCKED`). Action buttons to "Phê duyệt" (Approve), "Từ chối" (Reject), or "Khóa gian hàng" (Lock).
 
-- [ ] **Step 6: Implement Admin Platform Vouchers (`AdminVouchersPage.tsx`)**
+- [x] **Step 6: Implement Admin Platform Vouchers (`AdminVouchersPage.tsx`)**
   Manage platform-wide vouchers applicable to all shops, toggle active/inactive status, and create new platform vouchers.
 
-- [ ] **Step 7: Verify build & TypeScript compilation**
-  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+- [x] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors (Verified in 18.50s).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   `git add frontend/ && git commit -m "feat: implement Seller Center and Admin Management frontend portals"`
 
 ---

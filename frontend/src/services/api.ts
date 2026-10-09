@@ -290,3 +290,4 @@ export const aiApi = {
   chat: (data: { message: string; history?: any[] }): Promise<ApiResponse<AIChatResponse>> =>
     api.post('/ai/chat', data),
 };
+

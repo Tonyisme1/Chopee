@@ -211,3 +211,4 @@ export const RegisterSellerPage: React.FC = () => {
   );
 };
 export default RegisterSellerPage;
+
