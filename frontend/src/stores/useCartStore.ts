@@ -25,6 +25,69 @@ interface CartState {
   getItemsByShop: () => ShopCartGroup[];
 }
 
+function parseCartResponse(data: any): { flatItems: CartItem[]; totalItemCount: number; totalAmount: number } {
+  const flatItems: CartItem[] = [];
+
+  if (!data) {
+    return { flatItems: [], totalItemCount: 0, totalAmount: 0 };
+  }
+
+  // 1. If backend returns grouped by shops: List<ShopCartGroupResponse>
+  if (data.shops && Array.isArray(data.shops)) {
+    data.shops.forEach((shop: any) => {
+      if (shop.items && Array.isArray(shop.items)) {
+        shop.items.forEach((item: any) => {
+          flatItems.push({
+            id: item.id,
+            productId: item.productId,
+            productName: item.productName,
+            productSlug: item.productSlug,
+            thumbnailUrl: item.thumbnailUrl,
+            unit: item.unit || 'sản phẩm',
+            stepQuantity: Number(item.stepQuantity) || 1,
+            storageType: item.storageType || 'NORMAL',
+            sellingPrice: Number(item.unitPrice ?? item.sellingPrice ?? 0),
+            quantity: Number(item.quantity) || 1,
+            subtotal: Number(item.itemSubtotal ?? item.subtotal ?? ((Number(item.unitPrice) || 0) * (Number(item.quantity) || 1))),
+            variantId: item.variantId,
+            variantName: item.variantName,
+            shopId: shop.shopId ?? item.shopId ?? 0,
+            shopName: shop.shopName ?? item.shopName ?? 'Gian hàng',
+            shopSlug: shop.shopSlug ?? item.shopSlug,
+          });
+        });
+      }
+    });
+  } else if (data.items && Array.isArray(data.items)) {
+    // 2. Direct items fallback
+    data.items.forEach((item: any) => {
+      flatItems.push({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productSlug: item.productSlug,
+        thumbnailUrl: item.thumbnailUrl,
+        unit: item.unit || 'sản phẩm',
+        stepQuantity: Number(item.stepQuantity) || 1,
+        storageType: item.storageType || 'NORMAL',
+        sellingPrice: Number(item.unitPrice ?? item.sellingPrice ?? 0),
+        quantity: Number(item.quantity) || 1,
+        subtotal: Number(item.itemSubtotal ?? item.subtotal ?? ((Number(item.unitPrice) || 0) * (Number(item.quantity) || 1))),
+        variantId: item.variantId,
+        variantName: item.variantName,
+        shopId: item.shopId ?? 0,
+        shopName: item.shopName ?? 'Gian hàng',
+        shopSlug: item.shopSlug,
+      });
+    });
+  }
+
+  const totalItemCount = typeof data.totalItemCount === 'number' ? data.totalItemCount : flatItems.length;
+  const totalAmount = Number(data.grandTotal ?? data.totalAmount ?? flatItems.reduce((sum, item) => sum + item.subtotal, 0));
+
+  return { flatItems, totalItemCount, totalAmount };
+}
+
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   totalItemCount: 0,
@@ -44,13 +107,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     try {
       const response = await cartApi.getCart();
       if (response.success && response.data) {
-        const { items, totalItemCount, totalAmount } = response.data;
+        const { flatItems, totalItemCount, totalAmount } = parseCartResponse(response.data);
         set({
-          items: items || [],
-          totalItemCount: totalItemCount || 0,
-          totalAmount: totalAmount || 0,
+          items: flatItems,
+          totalItemCount,
+          totalAmount,
           isLoading: false,
         });
+      } else {
+        set({ items: [], totalItemCount: 0, totalAmount: 0, isLoading: false });
       }
     } catch (err: any) {
       set({ isLoading: false, error: err.message });
@@ -61,14 +126,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await cartApi.addToCart({ productId, quantity, variantId });
-      if (response.success && response.data) {
-        const { items, totalItemCount, totalAmount } = response.data;
-        set({
-          items: items || [],
-          totalItemCount: totalItemCount || 0,
-          totalAmount: totalAmount || 0,
-          isLoading: false,
-        });
+      if (response.success) {
+        await get().fetchCart();
       }
     } catch (err: any) {
       set({ isLoading: false, error: err.message });
@@ -84,14 +143,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await cartApi.updateCartItem(itemId, { quantity });
-      if (response.success && response.data) {
-        const { items, totalItemCount, totalAmount } = response.data;
-        set({
-          items: items || [],
-          totalItemCount: totalItemCount || 0,
-          totalAmount: totalAmount || 0,
-          isLoading: false,
-        });
+      if (response.success) {
+        await get().fetchCart();
       }
     } catch (err: any) {
       set({ isLoading: false, error: err.message });
@@ -103,14 +156,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await cartApi.removeCartItem(itemId);
-      if (response.success && response.data) {
-        const { items, totalItemCount, totalAmount } = response.data;
-        set({
-          items: items || [],
-          totalItemCount: totalItemCount || 0,
-          totalAmount: totalAmount || 0,
-          isLoading: false,
-        });
+      if (response.success) {
+        await get().fetchCart();
       }
     } catch (err: any) {
       set({ isLoading: false, error: err.message });

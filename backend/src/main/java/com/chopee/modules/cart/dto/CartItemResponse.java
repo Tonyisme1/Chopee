@@ -1,6 +1,7 @@
 package com.chopee.modules.cart.dto;
 
 import com.chopee.entity.enums.StorageType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,4 +30,17 @@ public class CartItemResponse {
     private BigDecimal stockQuantity;
     private StorageType storageType;
     private boolean available;
+    private Long shopId;
+    private String shopName;
+    private String shopSlug;
+
+    @JsonProperty("sellingPrice")
+    public BigDecimal getSellingPrice() {
+        return unitPrice;
+    }
+
+    @JsonProperty("subtotal")
+    public BigDecimal getSubtotal() {
+        return itemSubtotal;
+    }
 }

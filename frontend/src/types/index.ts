@@ -149,10 +149,44 @@ export interface CartItem {
   shopSlug?: string;
 }
 
+export interface CartItemDto {
+  id: number;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  thumbnailUrl?: string;
+  variantId?: number;
+  variantName?: string;
+  unitPrice: number;
+  quantity: number;
+  itemSubtotal: number;
+  unit: string;
+  stepQuantity: number;
+  minOrderQuantity?: number;
+  stockQuantity?: number;
+  storageType: StorageType;
+  available: boolean;
+  shopId?: number;
+  shopName?: string;
+  shopSlug?: string;
+}
+
+export interface ShopCartGroupDto {
+  shopId: number;
+  shopName: string;
+  shopSlug?: string;
+  shopLogoUrl?: string;
+  shopAddress?: string;
+  items: CartItemDto[];
+  shopSubtotal: number;
+}
+
 export interface CartResponse {
-  items: CartItem[];
+  shops?: ShopCartGroupDto[];
+  items?: (CartItem | CartItemDto)[];
   totalItemCount: number;
-  totalAmount: number;
+  totalAmount?: number;
+  grandTotal?: number;
 }
 
 export interface OrderItem {

@@ -21,8 +21,8 @@ export const CartPage: React.FC = () => {
   const { items, fetchCart, updateQuantity, removeItem, getItemsByShop } = useCartStore();
   const { isAuthenticated } = useAuthStore();
 
-  // Selected item IDs for checkout
   const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
+  const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -30,12 +30,27 @@ export const CartPage: React.FC = () => {
     }
   }, [isAuthenticated, fetchCart]);
 
-  // When items load or change, select all by default if newly loaded
+  // When items load or change, select all on initial load, otherwise maintain valid selections
   useEffect(() => {
-    if (items.length > 0 && selectedItemIds.size === 0) {
-      setSelectedItemIds(new Set(items.map((i) => i.id)));
+    if (items.length > 0) {
+      if (!hasInitializedSelection) {
+        setSelectedItemIds(new Set(items.map((i) => i.id)));
+        setHasInitializedSelection(true);
+      } else {
+        setSelectedItemIds((prev) => {
+          const next = new Set<number>();
+          items.forEach((i) => {
+            if (prev.has(i.id)) {
+              next.add(i.id);
+            }
+          });
+          return next;
+        });
+      }
+    } else {
+      setSelectedItemIds(new Set());
     }
-  }, [items]);
+  }, [items, hasInitializedSelection]);
 
   if (!isAuthenticated) {
     return (

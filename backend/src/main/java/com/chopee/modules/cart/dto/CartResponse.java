@@ -1,5 +1,6 @@
 package com.chopee.modules.cart.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +17,15 @@ import java.util.List;
 public class CartResponse {
     @Builder.Default
     private List<ShopCartGroupResponse> shops = new ArrayList<>();
+
+    @Builder.Default
+    private List<CartItemResponse> items = new ArrayList<>();
+
     private int totalItemCount;
     private BigDecimal grandTotal;
+
+    @JsonProperty("totalAmount")
+    public BigDecimal getTotalAmount() {
+        return grandTotal;
+    }
 }

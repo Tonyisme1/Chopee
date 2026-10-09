@@ -729,6 +729,30 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Giao diện chuẩn xác 100% theo giao diện Shopee như hình ảnh tham chiếu của người dùng.
 * **Phạm vi tác động:** `frontend/src/pages/ProductDetailPage.tsx`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261009-005] Đồng Bộ Dữ Liệu Giỏ Hàng Đa Cửa Hàng & Khắc Phục Lỗi Hiển Thị Giỏ Hàng Rỗng (Cart State Sync & Multi-Shop Response Normalization)
+* **Ngày thực hiện:** 2026-10-09
+* **Người thực hiện:** Fullstack Lead & Frontend Specialist
+* **Loại thay đổi:** `FIXED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `FRONTEND_UI`, `CART_MODULE`
+* **Mô tả thay đổi:**
+  1. **Khắc phục lỗi phân rã dữ liệu giỏ hàng trong `useCartStore.ts`**:
+     - Cập nhật hàm xử lý phản hồi giỏ hàng (`parseCartResponse`) giải nén chính xác danh sách các nhóm gian hàng `response.data.shops` thành mảng `flatItems: CartItem[]` kèm đầy đủ thông tin cửa hàng (`shopId`, `shopName`, `shopSlug`), đơn giá (`unitPrice` / `sellingPrice`), thành tiền (`itemSubtotal` / `subtotal`), và biến thể sản phẩm.
+     - Đồng bộ hóa các thao tác `addToCart`, `updateQuantity`, `removeItem` bằng cách gọi lại `await get().fetchCart()` sau mỗi tác vụ thành công nhằm đảm bảo trạng thái giỏ hàng ở Client và CSDL luôn đồng bộ 100%.
+  2. **Nâng cấp tính tương thích kép cho Backend API Cart DTOs**:
+     - `CartResponse.java`: Bổ sung danh sách phẳng `items` (`List<CartItemResponse>`) song song với nhóm cửa hàng `shops` (`List<ShopCartGroupResponse>`), kèm getter bí danh `@JsonProperty("totalAmount")` trỏ về `grandTotal`.
+     - `CartItemResponse.java`: Bổ sung các trường `shopId`, `shopName`, `shopSlug` cùng các getter bí danh `@JsonProperty("sellingPrice")` và `@JsonProperty("subtotal")`.
+     - `CartService.java`: Nạp đầy đủ thông tin cửa hàng và danh sách tổng `allItems` vào `CartResponse` trong cả `getCart` và `mapToItemResponse`.
+  3. **Khắc phục logic chọn sản phẩm thanh toán trong `CartPage.tsx`**:
+     - Sử dụng biến cờ `hasInitializedSelection` để chỉ tự động chọn toàn bộ sản phẩm trong lần tải đầu tiên, duy trì trạng thái chọn của người dùng khi cập nhật số lượng thay vì bị chọn lại hoặc mất dấu.
+* **Lý do thay đổi:** Khắc phục triệt để lỗi người dùng thêm sản phẩm vào giỏ hàng thành công nhưng khi vào trang `/cart` lại thấy giỏ trống rỗng do cấu trúc DTO backend (`shops`) không khớp với logic bóc tách cũ (`items`) ở frontend.
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Khi gọi `addToCart` hoặc `fetchCart`, frontend truy cập `response.data.items` dẫn đến `undefined`, gán `items: []` làm sạch giỏ hàng trên giao diện mặc dù CSDL backend đã lưu bản ghi.
+  * *Sau:* Thêm vào giỏ hàng hiển thị ngay lập tức trên badge thanh điều hướng (`Header`), trang `/cart` hiển thị đầy đủ từng món hàng gom nhóm chuẩn xác theo từng cửa hàng, cho phép tăng giảm số lượng số nguyên `[-] [1] [+]` và tính thành tiền mượt mà.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/cart/dto/CartResponse.java`, `backend/src/main/java/com/chopee/modules/cart/dto/CartItemResponse.java`, `backend/src/main/java/com/chopee/modules/cart/CartService.java`, `frontend/src/stores/useCartStore.ts`, `frontend/src/pages/CartPage.tsx`, `frontend/src/services/api.ts`, `frontend/src/types/index.ts`, `docs/specs/07_changelog.md`.
+
+
 
 
 

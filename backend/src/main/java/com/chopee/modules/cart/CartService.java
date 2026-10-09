@@ -34,6 +34,7 @@ public class CartService {
         List<CartItem> items = cartItemRepository.findByUserId(userId);
 
         Map<Long, ShopCartGroupResponse> shopGroups = new LinkedHashMap<>();
+        List<CartItemResponse> allItems = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         int totalItemCount = items.size();
 
@@ -72,6 +73,9 @@ public class CartService {
                     .stockQuantity(stock)
                     .storageType(product.getStorageType())
                     .available(available)
+                    .shopId(shop != null ? shop.getId() : null)
+                    .shopName(shop != null ? shop.getName() : null)
+                    .shopSlug(shop != null ? shop.getSlug() : null)
                     .build();
 
             ShopCartGroupResponse group = shopGroups.computeIfAbsent(shop.getId(), k -> ShopCartGroupResponse.builder()
@@ -85,6 +89,7 @@ public class CartService {
                     .build());
 
             group.getItems().add(itemResponse);
+            allItems.add(itemResponse);
             if (available) {
                 group.setShopSubtotal(group.getShopSubtotal().add(itemSubtotal));
                 grandTotal = grandTotal.add(itemSubtotal);
@@ -93,6 +98,7 @@ public class CartService {
 
         return CartResponse.builder()
                 .shops(new ArrayList<>(shopGroups.values()))
+                .items(allItems)
                 .totalItemCount(totalItemCount)
                 .grandTotal(grandTotal)
                 .build();
@@ -229,6 +235,8 @@ public class CartService {
 
         BigDecimal itemSubtotal = unitPrice.multiply(item.getQuantity());
 
+        Shop shop = product.getShop();
+
         return CartItemResponse.builder()
                 .id(item.getId())
                 .productId(product.getId())
@@ -246,6 +254,9 @@ public class CartService {
                 .stockQuantity(stock)
                 .storageType(product.getStorageType())
                 .available(available)
+                .shopId(shop != null ? shop.getId() : null)
+                .shopName(shop != null ? shop.getName() : null)
+                .shopSlug(shop != null ? shop.getSlug() : null)
                 .build();
     }
 }

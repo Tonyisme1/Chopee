@@ -121,16 +121,16 @@ export const cartApi = {
     productId: number;
     quantity: number;
     variantId?: number;
-  }): Promise<ApiResponse<CartResponse>> =>
+  }): Promise<ApiResponse<any>> =>
     api.post('/buyer/cart/items', data),
 
   updateCartItem: (
     itemId: number,
     data: { quantity: number }
-  ): Promise<ApiResponse<CartResponse>> =>
+  ): Promise<ApiResponse<any>> =>
     api.put(`/buyer/cart/items/${itemId}`, data),
 
-  removeCartItem: (itemId: number): Promise<ApiResponse<CartResponse>> =>
+  removeCartItem: (itemId: number): Promise<ApiResponse<void>> =>
     api.delete(`/buyer/cart/items/${itemId}`),
 
   clearCart: (): Promise<ApiResponse<void>> =>
