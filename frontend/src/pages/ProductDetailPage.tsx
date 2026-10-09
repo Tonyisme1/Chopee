@@ -14,6 +14,7 @@ import {
   Apple,
   Snowflake,
   Package,
+  Layers,
 } from 'lucide-react';
 import { ProductDetail } from '../types';
 import { catalogApi } from '../services/api';
@@ -33,6 +34,8 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined);
+  const [selectedTier1, setSelectedTier1] = useState<string>('');
+  const [selectedTier2, setSelectedTier2] = useState<string>('');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -85,8 +88,66 @@ export const ProductDetailPage: React.FC = () => {
     name: string;
     price: number;
     originalPrice?: number;
+    stockQuantity?: number;
     packageType: string;
   }
+
+  interface TierGroup {
+    name: string;
+    options: string[];
+  }
+
+  const tierGroups: TierGroup[] = useMemo(() => {
+    if (!product || !product.tierVariation) return [];
+    try {
+      const parsed = JSON.parse(product.tierVariation);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((g) => g.name && Array.isArray(g.options) && g.options.length > 0);
+      }
+    } catch (e) {
+      console.error('Lỗi parse tierVariation JSON:', e);
+    }
+    return [];
+  }, [product]);
+
+  useEffect(() => {
+    if (tierGroups.length > 0) {
+      setSelectedTier1(tierGroups[0].options[0] || '');
+      if (tierGroups.length > 1) {
+        setSelectedTier2(tierGroups[1].options[0] || '');
+      } else {
+        setSelectedTier2('');
+      }
+    }
+  }, [tierGroups]);
+
+  const matchedTierVariant = useMemo(() => {
+    if (!product || !product.variants || tierGroups.length === 0) return null;
+
+    const t1Name = tierGroups[0]?.name;
+    const t2Name = tierGroups[1]?.name;
+
+    return (
+      product.variants.find((v) => {
+        if (v.attributes) {
+          try {
+            const attrs = JSON.parse(v.attributes);
+            const matchT1 = !selectedTier1 || attrs[t1Name] === selectedTier1;
+            const matchT2 = !t2Name || !selectedTier2 || attrs[t2Name] === selectedTier2;
+            if (matchT1 && matchT2) return true;
+          } catch {
+            // fallback
+          }
+        }
+        if (t2Name && selectedTier2) {
+          if (v.variantName === `${selectedTier1} - ${selectedTier2}`) return true;
+        } else {
+          if (v.variantName === selectedTier1) return true;
+        }
+        return false;
+      }) || null
+    );
+  }, [product, tierGroups, selectedTier1, selectedTier2]);
 
   const packagingOptions: PackagingOption[] = useMemo(() => {
     if (!product) return [];
@@ -114,6 +175,7 @@ export const ProductDetailPage: React.FC = () => {
           name: v.variantName,
           price,
           originalPrice: origPrice,
+          stockQuantity: v.stockQuantity,
           packageType: pkgType,
         };
       });
@@ -124,16 +186,55 @@ export const ProductDetailPage: React.FC = () => {
         name: `1 ${product.unit}`,
         price: product.sellingPrice,
         originalPrice: product.originalPrice,
+        stockQuantity: product.stockQuantity,
         packageType: product.unit,
       },
     ];
   }, [product]);
 
+  const activeTierOption: PackagingOption | null = useMemo(() => {
+    if (tierGroups.length === 0 || !product) return null;
+
+    const currentPrice = matchedTierVariant ? matchedTierVariant.price : product.sellingPrice;
+    const currentOrigPrice = product.originalPrice
+      ? Math.round(product.originalPrice * (product.sellingPrice > 0 ? currentPrice / product.sellingPrice : 1))
+      : undefined;
+    const currentStock = matchedTierVariant ? matchedTierVariant.stockQuantity : product.stockQuantity;
+    const currentVariantId = matchedTierVariant ? matchedTierVariant.id : undefined;
+    const currentVariantName = matchedTierVariant
+      ? matchedTierVariant.variantName
+      : [selectedTier1, selectedTier2].filter(Boolean).join(' - ') || product.unit;
+
+    let pkgType = 'gói';
+    const nameLower = currentVariantName.toLowerCase();
+    if (nameLower.includes('túi') || nameLower.includes('bịch')) pkgType = 'túi';
+    else if (nameLower.includes('chai')) pkgType = 'chai';
+    else if (nameLower.includes('can')) pkgType = 'can';
+    else if (nameLower.includes('hộp')) pkgType = 'hộp';
+    else if (nameLower.includes('thùng')) pkgType = 'thùng';
+    else if (nameLower.includes('lốc')) pkgType = 'lốc';
+    else if (nameLower.includes('bó')) pkgType = 'bó';
+    else if (nameLower.includes('khay') || nameLower.includes('vỉ')) pkgType = 'khay';
+    else if (product.unit) pkgType = product.unit;
+
+    return {
+      id: currentVariantId,
+      name: currentVariantName,
+      price: currentPrice,
+      originalPrice: currentOrigPrice,
+      stockQuantity: currentStock,
+      packageType: pkgType,
+    };
+  }, [tierGroups, matchedTierVariant, product, selectedTier1, selectedTier2]);
+
   const activeOption: PackagingOption =
-    packagingOptions[selectedOptionIndex] || packagingOptions[0] || {
+    activeTierOption ||
+    packagingOptions[selectedOptionIndex] ||
+    packagingOptions[0] || {
       name: product?.unit ? `1 ${product.unit}` : 'Sản phẩm',
       price: product?.sellingPrice || 0,
       originalPrice: product?.originalPrice,
+      stockQuantity: product?.stockQuantity || 0,
       packageType: product?.unit || 'món',
     };
 
@@ -317,8 +418,86 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Packaging / Variants Specifications */}
-            {packagingOptions.length > 1 && (
+            {/* Multi-tier or Packaging / Variants Specifications */}
+            {tierGroups.length > 0 ? (
+              <div className="mb-5 space-y-4">
+                {/* Tier 1 Selection */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+                    <Package className="w-4 h-4 text-chopee-orange" />
+                    <span>{tierGroups[0].name}:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {tierGroups[0].options.map((opt) => {
+                      const isSelected = selectedTier1 === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setSelectedTier1(opt)}
+                          className={`px-4 py-2 rounded-xl text-xs transition-all relative border ${
+                            isSelected
+                              ? 'bg-orange-50/90 border-chopee-orange text-chopee-orange ring-1 ring-chopee-orange shadow-sm font-bold'
+                              : 'border-gray-200 bg-gray-50/60 hover:bg-white hover:border-gray-300 text-gray-700 font-medium'
+                          }`}
+                        >
+                          <span>{opt}</span>
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-chopee-orange" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tier 2 Selection (if exists) */}
+                {tierGroups.length > 1 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+                      <Layers className="w-4 h-4 text-chopee-orange" />
+                      <span>{tierGroups[1].name}:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tierGroups[1].options.map((opt) => {
+                        const isSelected = selectedTier2 === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setSelectedTier2(opt)}
+                            className={`px-4 py-2 rounded-xl text-xs transition-all relative border ${
+                              isSelected
+                                ? 'bg-orange-50/90 border-chopee-orange text-chopee-orange ring-1 ring-chopee-orange shadow-sm font-bold'
+                                : 'border-gray-200 bg-gray-50/60 hover:bg-white hover:border-gray-300 text-gray-700 font-medium'
+                            }`}
+                          >
+                            <span>{opt}</span>
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-chopee-orange" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Variant Stock & SKU */}
+                <div className="text-[11px] text-gray-500 flex items-center gap-2">
+                  <span>
+                    Kho hàng:{' '}
+                    <strong className="text-gray-800 font-bold">
+                      {activeOption.stockQuantity !== undefined ? activeOption.stockQuantity : product.stockQuantity}
+                    </strong>{' '}
+                    {activeOption.packageType}
+                  </span>
+                  {matchedTierVariant?.sku && (
+                    <span className="text-gray-400">| SKU: {matchedTierVariant.sku}</span>
+                  )}
+                </div>
+              </div>
+            ) : packagingOptions.length > 1 ? (
               <div className="mb-5 space-y-2.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
                   <Package className="w-4 h-4 text-chopee-orange" />
@@ -350,7 +529,7 @@ export const ProductDetailPage: React.FC = () => {
                   })}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Quick Count Presets */}
             <div className="mb-5 space-y-2">
