@@ -109,28 +109,28 @@
 - Consumes: `sellerApi.duplicateProduct(id)`
 - Produces: Form nhập liệu ma trận 2 cấp, thanh áp dụng hàng loạt, nút mẫu ngành hàng.
 
-- [ ] **Step 1: Cập nhật TypeScript Types & API Client**
+- [x] **Step 1: Cập nhật TypeScript Types & API Client**
   - Thêm `tierVariation?: string`, `sku?: string`, `attributes?: string` vào `ProductDetail`, `ProductVariant`, `CreateProductPayload`.
   - Thêm `sellerApi.duplicateProduct(id: number)` trong `frontend/src/services/api.ts`.
 
-- [ ] **Step 2: Tích hợp Bộ Mẫu 1-Click Theo Ngành Hàng (Industry Presets)**
-  - Thêm các nút mẫu: `🥬 Rau củ`, `🥩 Thịt tươi`, `🌾 Gạo / Nông sản`, `📱 Điện thoại`, `⌨️ Bàn phím cơ`, `🎧 Tai nghe`, `🧃 Đồ uống`.
+- [x] **Step 2: Tích hợp Bộ Mẫu 1-Click Theo Ngành Hàng (Industry Presets)**
+  - Thêm các nút mẫu: `🥬 Rau củ`, `🥩 Thịt tươi`, `🌾 Gạo / Nông sản`, `📱 Điện thoại`, `⌨️ Bàn phím cơ`, `🎧 Tai nghe`, `🧃 Đồ uống`, `👕 Thời trang`.
   - Khi click: tự động điền nhóm 1 và nhóm 2 tương ứng.
 
-- [ ] **Step 3: Tích hợp Bộ Sinh Ma Trận 2 Cấp & Thanh Áp Dụng Hàng Loạt (Bulk Apply Bar)**
+- [x] **Step 3: Tích hợp Bộ Sinh Ma Trận 2 Cấp & Thanh Áp Dụng Hàng Loạt (Bulk Apply Bar)**
   - Tự động sinh danh sách phân loại `Nhóm 1 × Nhóm 2`.
   - Khung "Áp dụng cho tất cả phân loại": Điền 1 giá + 1 tồn kho ➔ Click là toàn bộ các dòng ma trận nhận giá và kho ngay lập tức.
   - Cho phép sửa tay từng dòng.
 
-- [ ] **Step 4: Tích hợp Nút Nhân Bản Sản Phẩm (Quick Duplicate)**
+- [x] **Step 4: Tích hợp Nút Nhân Bản Sản Phẩm (Quick Duplicate)**
   - Thêm nút Copy cạnh nút Sửa/Xóa trong bảng danh sách sản phẩm.
-  - Bấm vào sẽ gọi API duplicate và mở modal chỉnh sửa nhanh.
+  - Bấm vào gọi API duplicate và cập nhật danh sách ngay lập tức.
 
-- [ ] **Step 5: Kiểm tra build TypeScript**
+- [x] **Step 5: Kiểm tra build TypeScript**
   - Chạy `npm run build` trong `frontend/`.
   - Đảm bảo 0 lỗi TypeScript.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `git commit -m "feat: add multi-tier variant matrix, industry presets and bulk apply to seller UI"`
 
 ---
@@ -143,27 +143,27 @@
 **Interfaces:**
 - Hiển thị 2 nhóm phân loại độc lập khi sản phẩm có `tierVariation`.
 
-- [ ] **Step 1: Phân tích `tierVariation` trên `ProductDetailPage.tsx`**
+- [x] **Step 1: Phân tích `tierVariation` trên `ProductDetailPage.tsx`**
   - Parse JSON `product.tierVariation` nếu có để lấy danh sách 2 nhóm: `group1: { name, options }`, `group2: { name, options }`.
   - Quản lý state `selectedTier1: string` và `selectedTier2: string`.
 
-- [ ] **Step 2: Render 2 Tầng Nút Bấm Phân Loại**
+- [x] **Step 2: Render 2 Tầng Nút Bấm Phân Loại**
   - Tầng 1: Hiển thị các nút của Nhóm 1 (ví dụ: [Tươi] [Khô] hoặc [Đen] [Titan]).
   - Tầng 2: Hiển thị các nút của Nhóm 2 (ví dụ: [Túi 500g] [Túi 1kg] [Túi 2kg] hoặc [128GB] [256GB]).
 
-- [ ] **Step 3: Ánh Xạ Biến Thể Tương Ứng & Cập Nhật Giá**
+- [x] **Step 3: Ánh Xạ Biến Thể Tương Ứng & Cập Nhật Giá**
   - Khi chọn đủ 2 tầng: Tìm biến thể khớp với cặp thuộc tính để lấy `variantId`, giá bán và tồn kho.
   - Cập nhật Price Box và số lượng tối đa.
 
-- [ ] **Step 4: Giữ Vững Quy Ước Số Lượng Nguyên (`Quantity Stepper`)**
+- [x] **Step 4: Giữ Vững Quy Ước Số Lượng Nguyên (`Quantity Stepper`)**
   - Nút tăng giảm số lượng strictly integer (+1, -1, tối thiểu 1).
   - Tạm tính = Giá biến thể × Số lượng nguyên.
 
-- [ ] **Step 5: Kiểm tra build TypeScript**
+- [x] **Step 5: Kiểm tra build TypeScript**
   - Chạy `npm run build` trong `frontend/`.
   - Đảm bảo 0 lỗi TypeScript.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `git commit -m "feat: add 2-tier variant selection UI for buyers on ProductDetailPage"`
 
 ---
@@ -173,13 +173,14 @@
 **Files:**
 - Modify: `docs/specs/07_changelog.md`
 
-- [ ] **Step 1: Chạy kiểm thử tự động toàn diện**
-  - Chạy `mvn test` (đảm bảo 60/60 tests backend PASS).
+- [x] **Step 1: Chạy kiểm thử tự động toàn diện**
+  - Chạy `mvn test` (đảm bảo 62/62 tests backend PASS).
   - Chạy `npm run build` (đảm bảo frontend đóng gói thành công).
 
-- [ ] **Step 2: Ghi nhận nhật ký thay đổi `CHG-20261009-002`**
+- [x] **Step 2: Ghi nhận nhật ký thay đổi `CHG-20261009-002`**
   - Thêm bản ghi chi tiết vào `docs/specs/07_changelog.md`.
 
-- [ ] **Step 3: Commit và đẩy code lên GitHub**
+- [x] **Step 3: Commit và đẩy code lên GitHub**
   - `git push origin main`
+
 

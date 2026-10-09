@@ -627,6 +627,58 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
        - Bổ sung biến thể đóng gói `Túi 2.0 kg` bên cạnh `Túi 500g` và `Túi 1.0 kg` cho toàn bộ thực phẩm tươi sống tính ký.
 * **Phạm vi tác động:** `frontend/src/pages/ProductDetailPage.tsx`, `frontend/src/pages/CartPage.tsx`, `frontend/src/pages/seller/SellerProductsPage.tsx`, `backend/src/main/java/com/chopee/config/DataInitializer.java`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261009-002] Hệ Thống Ma Trận Phân Loại 2 Cấp (Multi-Tier Variant Matrix), Nhập Hàng Siêu Tốc & Nhân Bản Sản Phẩm
+
+* **Mã thay đổi:** `CHG-20261009-002`
+* **Ngày thực hiện:** 2026-10-09
+* **Người thực hiện:** Antigravity AI Assistant & Engineering Team
+* **Loại thay đổi:** `ADDED` / `CHANGED`
+* **Phân hệ ảnh hưởng:** `DATABASE`, `BACKEND_API`, `FRONTEND_UI`, `DOCS`
+* **Mô tả thay đổi:**
+  Triển khai toàn diện Hệ thống Ma trận Phân loại Đa ngành 2 cấp (Multi-tier Variant Matrix), Bộ sinh biến thể Cartesian tự động, Thanh áp dụng giá & tồn kho hàng loạt (Bulk Apply Bar), Bộ mẫu 1-click theo ngành hàng (Industry Presets), Tính năng nhân bản sản phẩm 1-click (Duplicate Product kèm bảo vệ IDOR), và Giao diện người mua chọn 2 tầng nút bấm chuẩn Shopee.
+* **Lý do thay đổi:**
+  - Giải quyết triệt để yêu cầu và nỗi đau của người bán: Phân biệt rõ ràng giữa Phân loại (Loại tươi/khô, Màu sắc, RAM/ROM, Trọng lượng bao 5kg/10kg, Layout bàn phím, Switch...) và Số lượng mua (luôn là số nguyên 1, 2, 3... bịch/gói/chiếc).
+  - Khắc phục triệt để tình trạng người bán phải nhập hàng trăm mã hàng thủ công: Giúp người bán tạo hàng chục/hàng trăm biến thể trong vài giây nhờ bộ sinh ma trận Cartesian và thanh điền giá/tồn kho đồng loạt.
+  - Cho phép người bán nhân bản sản phẩm có cấu trúc tương tự chỉ với 1 click (sao chép toàn bộ thuộc tính, biến thể và bảo vệ chống tấn công IDOR giữa các Shop).
+* **Chi tiết Trước & Sau:**
+  - *Trước:*
+    - Bảng `products` chỉ có các trường đơn lẻ, `product_variants` chỉ có `variant_name`, `price`, `stock_quantity`.
+    - Người bán phải nhập từng biến thể một cách thủ công, không có mẫu ngành hàng, không có áp dụng giá/kho hàng loạt, không có nhân bản sản phẩm.
+    - Khách hàng xem sản phẩm chỉ thấy 1 hàng nút biến thể phẳng dài, khó phân biệt giữa các nhóm thuộc tính (ví dụ Loại vs Kích cỡ đóng gói).
+  - *Sau:*
+    1. **CSDL & Entity Backend:**
+       - `products`: Bổ sung cột `tier_variation` (`TEXT` JSON) lưu cấu trúc 2 tầng phân loại (chuẩn Shopee).
+       - `product_variants`: Bổ sung `sku` (`VARCHAR(100)`) và `attributes` (`TEXT` JSON).
+       - Cập nhật `chopee_schema_full.sql` và `DataInitializer.java` đồng bộ dữ liệu mẫu đa ngành (Rau củ VietGAP, Bàn phím cơ Keychron, Áo thun thời trang).
+    2. **Backend API & Bảo mật:**
+       - `CreateProductRequest`, `UpdateProductRequest`, `ProductDetailResponse`, `ProductVariantResponse` hỗ trợ `tierVariation`, `sku`, `attributes`.
+       - Endpoint mới `POST /api/v1/seller/products/{id}/duplicate`: Nhân bản toàn bộ thông tin sản phẩm và biến thể kèm kiểm tra quyền sở hữu IDOR nghiêm ngặt.
+       - Bộ test `SellerSecurityTest` kiểm thử đầy đủ kịch bản nhân bản thành công và chặn IDOR trái phép (403 Forbidden).
+    3. **Giao diện Người Bán (`SellerProductsPage.tsx`):**
+       - Mẫu 1-Click theo 8 ngành hàng: 🥬 Rau củ, 🥩 Thịt cá tươi, 🌾 Gạo / Nông sản, 📱 Điện thoại, ⌨️ Bàn phím cơ, 🎧 Tai nghe, 🧃 Đồ uống, 👕 Thời trang.
+       - Bộ sinh ma trận Cartesian 2 cấp tự động ($N \times M$) khi thêm/bớt tùy chọn.
+       - Thanh áp dụng hàng loạt (Bulk Apply Bar): 1-click áp dụng Giá bán và Tồn kho cho toàn bộ ma trận biến thể.
+       - Nút Nhân bản (Copy) và Chỉnh sửa (Edit) trực tiếp trong danh sách sản phẩm.
+    4. **Giao diện Người Mua (`ProductDetailPage.tsx`):**
+       - Render 2 tầng nút bấm độc lập (Tầng 1: Loại/Màu sắc; Tầng 2: Quy cách/Cấu hình).
+       - Tự động bắt cặp biến thể, cập nhật giá bán, tồn kho tối đa, mã SKU tức thì.
+       - Bảo toàn quy ước số lượng đặt mua luôn là số nguyên (`1, 2, 3...`).
+* **Phạm vi tác động:**
+  - `backend/src/main/java/com/chopee/entity/Product.java`
+  - `backend/src/main/java/com/chopee/entity/ProductVariant.java`
+  - `backend/src/main/resources/db/chopee_schema_full.sql`
+  - `backend/src/main/java/com/chopee/config/DataInitializer.java`
+  - `backend/src/main/java/com/chopee/modules/seller/**`
+  - `backend/src/main/java/com/chopee/modules/catalog/**`
+  - `frontend/src/types/index.ts`
+  - `frontend/src/services/api.ts`
+  - `frontend/src/pages/seller/SellerProductsPage.tsx`
+  - `frontend/src/pages/ProductDetailPage.tsx`
+  - `docs/specs/07_changelog.md`
+
+
 
 
 
