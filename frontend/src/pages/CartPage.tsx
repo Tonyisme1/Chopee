@@ -236,7 +236,10 @@ export const CartPage: React.FC = () => {
                               </span>
                             )}
                             <span className="text-[10px] text-gray-400">
-                              Đơn vị: {item.unit} (bước: {item.stepQuantity || 1})
+                              Đơn vị: {item.unit}{' '}
+                              {item.unit?.toLowerCase().includes('kg') || item.unit?.toLowerCase().includes('g')
+                                ? `(bước cân: ${item.stepQuantity || 0.5} kg)`
+                                : '(số lượng nguyên)'}
                             </span>
                           </div>
                         </div>
@@ -249,33 +252,48 @@ export const CartPage: React.FC = () => {
 
                       {/* Quantity Modifier */}
                       <div className="col-span-2 flex items-center justify-center">
-                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
-                          <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.id,
-                                Math.round((item.quantity - (item.stepQuantity || 1)) * 100) / 100
-                              )
-                            }
-                            className="p-1.5 text-gray-500 hover:bg-gray-100"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="px-2 text-xs font-bold text-gray-800 min-w-[36px] text-center">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.id,
-                                Math.round((item.quantity + (item.stepQuantity || 1)) * 100) / 100
-                              )
-                            }
-                            className="p-1.5 text-gray-500 hover:bg-gray-100"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
+                        {(() => {
+                          const isWeight =
+                            item.unit?.toLowerCase().trim() === 'kg' ||
+                            item.unit?.toLowerCase().trim() === 'kí' ||
+                            item.unit?.toLowerCase().trim() === 'ký' ||
+                            item.unit?.toLowerCase().trim() === 'g';
+                          const itemStep = isWeight ? (item.stepQuantity || 0.5) : 1;
+
+                          return (
+                            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextQty = isWeight
+                                    ? Math.max(itemStep, Math.round((item.quantity - itemStep) * 100) / 100)
+                                    : Math.max(1, Math.round(item.quantity - 1));
+                                  updateQuantity(item.id, nextQty);
+                                }}
+                                className="p-1.5 text-gray-500 hover:bg-gray-100"
+                                title="Giảm"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="px-2 text-xs font-bold text-gray-800 min-w-[50px] text-center">
+                                {isWeight ? `${item.quantity} kg` : `${Math.round(item.quantity)} ${item.unit}`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextQty = isWeight
+                                    ? Math.round((item.quantity + itemStep) * 100) / 100
+                                    : Math.round(item.quantity + 1);
+                                  updateQuantity(item.id, nextQty);
+                                }}
+                                className="p-1.5 text-gray-500 hover:bg-gray-100"
+                                title="Tăng"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Subtotal & Delete Action */}

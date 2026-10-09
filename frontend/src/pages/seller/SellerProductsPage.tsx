@@ -374,7 +374,7 @@ export const SellerProductsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-gray-700 mb-1">Tồn kho *</label>
                   <input
@@ -386,29 +386,64 @@ export const SellerProductsPage: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Đơn vị tính *</label>
-                  <input
-                    type="text"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    placeholder="kg, thùng, chiếc"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Bước nhảy (step) *</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={stepQuantity}
-                    onChange={(e) => setStepQuantity(Number(e.target.value))}
-                    placeholder="0.5"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none"
-                    required
-                  />
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-gray-700 mb-1">
+                    Đơn vị tính & Bước nhảy (Step) *
+                  </label>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {['kg', 'hộp', 'thùng', 'chiếc', 'bó', 'vỉ', 'lốc', 'chai'].map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          setUnit(u);
+                          const isW = u === 'kg';
+                          setStepQuantity(isW ? 0.5 : 1);
+                          setMinOrderQuantity(isW ? 0.5 : 1);
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          unit.toLowerCase().trim() === u
+                            ? 'bg-orange-50 border-chopee-orange text-chopee-orange font-bold'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={unit}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setUnit(val);
+                        if (!val.toLowerCase().includes('kg') && !val.toLowerCase().includes('g')) {
+                          setStepQuantity(1);
+                          setMinOrderQuantity(1);
+                        }
+                      }}
+                      placeholder="kg, thùng, chiếc..."
+                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none text-xs"
+                      required
+                    />
+                    <input
+                      type="number"
+                      step={unit.toLowerCase().includes('kg') ? '0.1' : '1'}
+                      min={unit.toLowerCase().includes('kg') ? '0.1' : '1'}
+                      value={stepQuantity}
+                      disabled={!unit.toLowerCase().includes('kg') && !unit.toLowerCase().includes('g')}
+                      onChange={(e) => setStepQuantity(Number(e.target.value))}
+                      placeholder="Bước nhảy"
+                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none text-xs disabled:opacity-60 disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {unit.toLowerCase().includes('kg') || unit.toLowerCase().includes('g')
+                      ? '💡 Đơn vị cân (kg): Người mua có thể chọn đóng gói 0.5kg (500g), 1kg, 2kg hoặc bước cân lẻ.'
+                      : '💡 Đơn vị đếm nguyên: Khách hàng mua số lượng nguyên chiếc (1, 2, 3...), bước nhảy cố định là 1.'}
+                  </p>
                 </div>
               </div>
 

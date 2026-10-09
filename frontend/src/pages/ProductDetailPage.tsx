@@ -74,15 +74,49 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const step = product.stepQuantity || 1;
-  const minQty = product.minOrderQuantity || 1;
+  const isWeightUnit =
+    product.unit?.toLowerCase().trim() === 'kg' ||
+    product.unit?.toLowerCase().trim() === 'kí' ||
+    product.unit?.toLowerCase().trim() === 'ký' ||
+    product.unit?.toLowerCase().trim() === 'g' ||
+    product.unit?.toLowerCase().trim() === 'gram';
+
+  const step = isWeightUnit ? (product.stepQuantity || 0.5) : 1;
+  const minQty = isWeightUnit
+    ? (product.minOrderQuantity || 0.5)
+    : Math.max(1, Math.round(product.minOrderQuantity || 1));
+
+  const weightPresets = [
+    { label: '0.5 kg (500g)', value: 0.5 },
+    { label: '1.0 kg (1 ký)', value: 1.0 },
+    { label: '1.5 kg', value: 1.5 },
+    { label: '2.0 kg (Túi 2kg)', value: 2.0 },
+    { label: '3.0 kg', value: 3.0 },
+    { label: '5.0 kg (Thùng 5kg)', value: 5.0 },
+  ];
+
+  const countPresets = [
+    { label: `1 ${product.unit}`, value: 1 },
+    { label: `2 ${product.unit}`, value: 2 },
+    { label: `3 ${product.unit}`, value: 3 },
+    { label: `5 ${product.unit}`, value: 5 },
+    { label: `10 ${product.unit}`, value: 10 },
+  ];
 
   const handleIncrease = () => {
-    setQuantity((prev) => Math.round((prev + step) * 100) / 100);
+    if (isWeightUnit) {
+      setQuantity((prev) => Math.round((prev + step) * 100) / 100);
+    } else {
+      setQuantity((prev) => Math.round(prev + 1));
+    }
   };
 
   const handleDecrease = () => {
-    setQuantity((prev) => Math.max(minQty, Math.round((prev - step) * 100) / 100));
+    if (isWeightUnit) {
+      setQuantity((prev) => Math.max(minQty, Math.round((prev - step) * 100) / 100));
+    } else {
+      setQuantity((prev) => Math.max(minQty, Math.round(prev - 1)));
+    }
   };
 
   const handleAddToCart = async () => {
@@ -268,29 +302,96 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Quantity Selector */}
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-xs font-semibold text-gray-700">Số lượng:</span>
-              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
+            {/* Weight / Packaging Presets for KG products */}
+            {isWeightUnit && (
+              <div className="mb-5 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  <Apple className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Chọn quy cách đóng gói & Khối lượng (kg):</span>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {weightPresets.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setQuantity(preset.value)}
+                      className={`px-2.5 py-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                        quantity === preset.value
+                          ? 'bg-orange-50 border-chopee-orange text-chopee-orange shadow-sm scale-102 ring-1 ring-chopee-orange'
+                          : 'border-gray-200 bg-gray-50/60 text-gray-700 hover:border-gray-300 hover:bg-white'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Count Presets for discrete unit products */}
+            {!isWeightUnit && countPresets.length > 0 && (
+              <div className="mb-5 space-y-2">
+                <span className="block text-xs font-semibold text-gray-700">
+                  Chọn số lượng nhanh ({product.unit}):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {countPresets.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setQuantity(preset.value)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        quantity === preset.value
+                          ? 'bg-orange-50 border-chopee-orange text-chopee-orange shadow-sm ring-1 ring-chopee-orange'
+                          : 'border-gray-200 bg-gray-50/60 text-gray-700 hover:border-gray-300 hover:bg-white'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity Selector Stepper */}
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <span className="text-xs font-semibold text-gray-700">
+                {isWeightUnit ? 'Cân ký tùy chỉnh:' : 'Số lượng đặt mua:'}
+              </span>
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                 <button
+                  type="button"
                   onClick={handleDecrease}
-                  className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="px-3.5 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Giảm số lượng"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="px-4 py-1 text-sm font-bold text-gray-800 min-w-[50px] text-center">
-                  {quantity}
+                <span className="px-4 py-1 text-sm font-bold text-gray-900 min-w-[70px] text-center">
+                  {isWeightUnit ? `${quantity} kg` : `${quantity} ${product.unit}`}
                 </span>
                 <button
+                  type="button"
                   onClick={handleIncrease}
-                  className="px-3 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="px-3.5 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Tăng số lượng"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <span className="text-xs text-gray-400">
-                (Đơn vị tính: {product.unit} - Tối thiểu {minQty} {product.unit})
-              </span>
+
+              {/* Subtotal preview */}
+              <div className="text-xs text-gray-500">
+                <span>Tạm tính: </span>
+                <strong className="text-sm font-black text-chopee-orange">
+                  {formatCurrency(Math.round(product.sellingPrice * quantity))}
+                </strong>
+                {isWeightUnit && (
+                  <span className="text-[11px] text-gray-400 ml-1.5">
+                    ({quantity} kg × {formatCurrency(product.sellingPrice)}/kg)
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Action Feedback Alerts */}
