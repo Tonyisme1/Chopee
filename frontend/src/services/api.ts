@@ -63,8 +63,11 @@ export default api;
 // ==========================================
 
 export const authApi = {
-  login: (data: { emailOrUsername: string; password: string }): Promise<ApiResponse<AuthResponse>> =>
-    api.post('/auth/login', data),
+  login: (data: { emailOrUsername?: string; usernameOrEmail?: string; password: string }): Promise<ApiResponse<AuthResponse>> =>
+    api.post('/auth/login', {
+      usernameOrEmail: data.usernameOrEmail || data.emailOrUsername,
+      password: data.password,
+    }),
 
   register: (data: {
     username: string;
