@@ -62,27 +62,6 @@ export const ProductDetailPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center text-gray-500">
-        <p className="text-sm font-semibold animate-pulse">Đang tải thông tin sản phẩm...</p>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-gray-100">
-        <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
-        <h2 className="text-lg font-bold text-gray-800">Không tìm thấy sản phẩm</h2>
-        <p className="text-xs text-gray-500 mb-4">Sản phẩm này có thể đã bị xóa hoặc tạm ngừng kinh doanh.</p>
-        <Link to="/" className="px-5 py-2.5 bg-chopee-orange text-white text-xs font-bold rounded-xl">
-          Quay lại trang chủ
-        </Link>
-      </div>
-    );
-  }
-
   interface PackagingOption {
     id?: number;
     name: string;
@@ -257,6 +236,7 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = async () => {
+    if (!product) return;
     if (!isAuthenticated) {
       navigate(`/login?redirect=/products/${product.id}`);
       return;
@@ -275,6 +255,7 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleBuyNow = async () => {
+    if (!product) return;
     if (!isAuthenticated) {
       navigate(`/login?redirect=/products/${product.id}`);
       return;
@@ -293,12 +274,33 @@ export const ProductDetailPage: React.FC = () => {
 
   // Parse JSON attributes
   let parsedAttributes: Record<string, string> = {};
-  if (product.attributes) {
+  if (product?.attributes) {
     try {
       parsedAttributes = JSON.parse(product.attributes);
     } catch (e) {
       console.error('Không thể parse attributes JSON', e);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center text-gray-500">
+        <p className="text-sm font-semibold animate-pulse">Đang tải thông tin sản phẩm...</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-gray-100">
+        <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
+        <h2 className="text-lg font-bold text-gray-800">Không tìm thấy sản phẩm</h2>
+        <p className="text-xs text-gray-500 mb-4">Sản phẩm này có thể đã bị xóa hoặc tạm ngừng kinh doanh.</p>
+        <Link to="/" className="px-5 py-2.5 bg-chopee-orange text-white text-xs font-bold rounded-xl">
+          Quay lại trang chủ
+        </Link>
+      </div>
+    );
   }
 
   return (
