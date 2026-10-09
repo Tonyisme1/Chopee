@@ -548,25 +548,25 @@
 **Interfaces:**
 - Produces: Floating animated button at bottom-right corner. Opens interactive chat window with Shopee orange header, typing indicator, suggested prompt chips (*"Gợi ý nguyên liệu nấu canh chua"*, *"Tìm sạc nhanh 65W cho laptop"*), AI natural language shopping recommendations, and interactive miniature product cards with direct "Thêm vào giỏ" button.
 
-- [ ] **Step 1: Implement floating chat launcher and dialog window**
+- [x] **Step 1: Implement floating chat launcher and dialog window**
   Include Shopee orange chat header with robot avatar, minimize and close buttons, and smooth open/close animations.
 
-- [ ] **Step 2: Add quick suggestion prompt chips**
+- [x] **Step 2: Add quick suggestion prompt chips**
   Buttons: *"Gợi ý nguyên liệu nấu canh chua 4 người"*, *"Tìm sạc nhanh 65W cho laptop"*, *"Lên thực đơn 150k mâm cơm gia đình"*, *"Thùng bia & nước ngọt tiệc 8 người"*. Clicking a chip sends the prompt immediately.
 
-- [ ] **Step 3: Connect to Backend AI API (`/api/v1/ai/chat`)**
+- [x] **Step 3: Connect to Backend AI API (`/api/v1/ai/chat`)**
   Send user messages to backend, maintain conversation history, display typing indicator while awaiting Gemini response.
 
-- [ ] **Step 4: Render rich message bubbles and product recommendation cards**
+- [x] **Step 4: Render rich message bubbles and product recommendation cards**
   Parse suggested products returned from backend API and render miniature product cards with image, price, shop name, and one-click "Thêm vào giỏ" action triggering `useCartStore.addToCart`.
 
-- [ ] **Step 5: Embed `AIChatWidget` into `MarketLayout.tsx`**
+- [x] **Step 5: Embed `AIChatWidget` into `MarketLayout.tsx`**
   Ensure the widget appears seamlessly across all marketplace browsing pages.
 
-- [ ] **Step 6: Verify build & TypeScript compilation**
-  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+- [x] **Step 6: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors (Verified in 26.96s).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
   `git add frontend/ && git commit -m "feat: implement floating AI Shopping Copilot chat widget with rich product cards"`
 
 ---
