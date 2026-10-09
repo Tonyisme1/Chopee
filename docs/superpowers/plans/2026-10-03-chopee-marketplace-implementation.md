@@ -510,31 +510,31 @@
 **Interfaces:**
 - Produces: Multi-vendor cart grouped by shop with item checkboxes and fractional quantity updates; Checkout page with shipping address manager modal, shipping method selector (`STANDARD` vs `EXPRESS_FRESH`), platform and shop voucher applicator, checkout preview with live discount calculation, payment selector (COD vs VNPay); Order Success page; Order tracking page with order cancellation and review submission modals.
 
-- [ ] **Step 1: Implement `CartPage.tsx`**
+- [x] **Step 1: Implement `CartPage.tsx`**
   Group cart items by `shop.name`. Checkbox per item and select-all per shop. Fractional quantity controls (`+` / `-` by `stepQuantity`). Delete item action. Shop subtotal calculation and bottom sticky checkout bar.
 
-- [ ] **Step 2: Implement `AddressModal.tsx`**
+- [x] **Step 2: Implement `AddressModal.tsx`**
   Modal to select existing delivery address or create new address (Receiver Name, Phone, Province, District, Ward, Detail Address, Default checkbox) calling `/api/v1/buyer/addresses`.
 
-- [ ] **Step 3: Implement `VoucherModal.tsx`**
+- [x] **Step 3: Implement `VoucherModal.tsx`**
   Modal displaying available shop vouchers and platform vouchers with minimum spend requirements and discount amount, with one-click "Áp dụng" button.
 
-- [ ] **Step 4: Implement `CheckoutPage.tsx`**
+- [x] **Step 4: Implement `CheckoutPage.tsx`**
   Delivery address card (with change address trigger opening `AddressModal`), order breakdown per shop with shipping method options (`STANDARD` vs `EXPRESS_FRESH`), voucher selection per shop and platform voucher, order preview calculation, payment method options (COD vs VNPay Sandbox QR), and "Đặt Hàng" button triggering `/api/v1/buyer/orders`. If VNPay chosen, automatically redirect to VNPay payment URL.
 
-- [ ] **Step 5: Implement `OrderSuccessPage.tsx`**
+- [x] **Step 5: Implement `OrderSuccessPage.tsx`**
   Confirmation screen displaying `groupOrderCode`, summary of split orders created per shop, shipping addresses, payment status, and button to track orders in "Đơn Mua Của Tôi".
 
-- [ ] **Step 6: Implement `MyOrdersPage.tsx` & `ReviewModal.tsx`**
+- [x] **Step 6: Implement `MyOrdersPage.tsx` & `ReviewModal.tsx`**
   Tabs: *Tất cả*, *Chờ xác nhận (PENDING)*, *Đang giao (SHIPPING)*, *Đã giao (DELIVERED)*, *Đã hủy (CANCELLED)*.
   Each order card displays shop name, item list, total amount, order code, status badge.
   Action button: "Hủy đơn hàng" if `PENDING` (calling `/api/v1/buyer/orders/{code}/cancel`).
   Action button: "Đánh giá" if `DELIVERED` opening `ReviewModal` to submit 1-5 star rating and comment calling `/api/v1/buyer/reviews`.
 
-- [ ] **Step 7: Verify build & TypeScript compilation**
-  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+- [x] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors (Verified in 26.90s).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   `git add frontend/ && git commit -m "feat: implement multi-vendor cart, address book, vouchers, checkout flow and order review UI"`
 
 ---

@@ -6,6 +6,10 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { HomePage } from './pages/HomePage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CategoryPage } from './pages/CategoryPage';
+import { CartPage } from './pages/CartPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { OrderSuccessPage } from './pages/OrderSuccessPage';
+import { MyOrdersPage } from './pages/MyOrdersPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { RegisterSellerPage } from './pages/auth/RegisterSellerPage';
@@ -31,22 +35,10 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="categories/:id" element={<CategoryPage />} />
-          <Route
-            path="cart"
-            element={<div className="p-8 text-center text-gray-500">Giỏ hàng của bạn (Đang tải...)</div>}
-          />
-          <Route
-            path="checkout"
-            element={<div className="p-8 text-center text-gray-500">Thanh toán đơn hàng (Đang tải...)</div>}
-          />
-          <Route
-            path="orders/success"
-            element={<div className="p-8 text-center text-gray-500">Đặt hàng thành công!</div>}
-          />
-          <Route
-            path="orders/my"
-            element={<div className="p-8 text-center text-gray-500">Đơn mua của tôi (Đang tải...)</div>}
-          />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="orders/success" element={<OrderSuccessPage />} />
+          <Route path="orders/my" element={<MyOrdersPage />} />
         </Route>
 
         {/* Seller Portal */}
