@@ -4,6 +4,8 @@ import { MarketLayout } from './layouts/MarketLayout';
 import { SellerLayout } from './layouts/SellerLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 import { HomePage } from './pages/HomePage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { CategoryPage } from './pages/CategoryPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { RegisterSellerPage } from './pages/auth/RegisterSellerPage';
@@ -27,14 +29,8 @@ export default function App() {
         {/* Public Marketplace Portal */}
         <Route path="/" element={<MarketLayout />}>
           <Route index element={<HomePage />} />
-          <Route
-            path="products/:id"
-            element={<div className="p-8 text-center text-gray-500">Chi tiết sản phẩm (Đang tải...)</div>}
-          />
-          <Route
-            path="categories/:id"
-            element={<div className="p-8 text-center text-gray-500">Danh mục sản phẩm (Đang tải...)</div>}
-          />
+          <Route path="products/:id" element={<ProductDetailPage />} />
+          <Route path="categories/:id" element={<CategoryPage />} />
           <Route
             path="cart"
             element={<div className="p-8 text-center text-gray-500">Giỏ hàng của bạn (Đang tải...)</div>}

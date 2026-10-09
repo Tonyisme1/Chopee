@@ -470,28 +470,28 @@
 **Interfaces:**
 - Produces: Dynamic Homepage with hero carousel banners, category quick-grid, "Chợ Thực Phẩm Tươi Sống Hôm Nay" highlight section, "Gia Dụng & Công Nghệ Hot", paginated product grid; Product Detail page with image gallery, seller badge, fractional quantity selector (`0.5kg` steps), technical JSON specifications table, and customer review list.
 
-- [ ] **Step 1: Implement `ProductCard.tsx`**
+- [x] **Step 1: Implement `ProductCard.tsx`**
   Render product card with image thumbnail, discount percentage badge, product title, selling price, strike-through original price, sold count, fresh food badge (`Tươi sống`, `Bảo quản mát`), and unit badge (`kg`, `thùng`, `chiếc`).
 
-- [ ] **Step 2: Implement `CategoryNav.tsx`**
+- [x] **Step 2: Implement `CategoryNav.tsx`**
   Horizontal category carousel with category icons and links to `/categories/:id`.
 
-- [ ] **Step 3: Implement `HomePage.tsx`**
+- [x] **Step 3: Implement `HomePage.tsx`**
   Hero promotion banners, category navigation, flash sales / hot deals section, fresh grocery section with 2-hour express delivery tag, and paginated product grid with search filtering.
 
-- [ ] **Step 4: Implement `ReviewList.tsx`**
+- [x] **Step 4: Implement `ReviewList.tsx`**
   Display star rating breakdown (5-star, 4-star, ...), list of verified customer reviews with buyer name, star rating, comment, date, review images, and seller reply badge.
 
-- [ ] **Step 5: Implement `ProductDetailPage.tsx`**
+- [x] **Step 5: Implement `ProductDetailPage.tsx`**
   Product image preview gallery, shop profile snippet (shop name, rating, address), unit selector with `minOrderQuantity` and `stepQuantity` increments, "Thêm Vào Giỏ Hàng" and "Mua Ngay" buttons, rich JSON attributes table (VietGAP, công suất, bảo hành, v.v.), and customer review list.
 
-- [ ] **Step 6: Implement `CategoryPage.tsx`**
+- [x] **Step 6: Implement `CategoryPage.tsx`**
   Sidebar filters (price range, storage type, min rating, sorting by price / newest / sold), product grid, and pagination.
 
-- [ ] **Step 7: Verify build & TypeScript compilation**
-  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+- [x] **Step 7: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors (Verified in 27.48s).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   `git add frontend/ && git commit -m "feat: implement Marketplace Homepage, Product Card, and Product Detail UI"`
 
 ---
