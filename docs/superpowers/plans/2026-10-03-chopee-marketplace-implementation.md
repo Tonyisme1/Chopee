@@ -420,39 +420,39 @@
 **Interfaces:**
 - Produces: Axios client with automatic Bearer token injection and error interceptors; Zustand stores for Auth, Cart, Address, and Vouchers; Shopee orange header with real-time cart badge; nested layout routing for Client (`/`), Seller (`/seller/*`), and Admin (`/admin/*`) portals.
 
-- [ ] **Step 1: Verify TypeScript DTO and Entity interfaces in `frontend/src/types/index.ts`**
-  Verify complete types: `ApiResponse<T>`, `User`, `Shop`, `Category`, `ProductSummary`, `ProductDetail`, `CartItem`, `CartResponse`, `Order`, `OrderItem`, `UserAddress`, `Voucher`, `Review`, `AIChatMessage`.
+- [x] **Step 1: Verify TypeScript DTO and Entity interfaces in `frontend/src/types/index.ts`**
+  Verify complete types: `ApiResponse<T>`, `User`, `Shop`, `Category`, `ProductSummary`, `ProductDetail`, `CartItem`, `CartResponse`, `Order`, `OrderItem`, `UserAddress`, `Voucher`, `Review`, `AIChatMessage`, `DiscountType`, `PageResponse<T>`.
 
-- [ ] **Step 2: Implement Axios Client in `frontend/src/services/api.ts`**
+- [x] **Step 2: Implement Axios Client in `frontend/src/services/api.ts`**
   Configure Axios instance with `baseURL: '/api/v1'`, request interceptor adding `Authorization: Bearer ${token}`, and response interceptor extracting `response.data` and handling 401 unauthenticated redirect.
 
-- [ ] **Step 3: Implement `useAuthStore.ts` with Zustand & LocalStorage persistence**
+- [x] **Step 3: Implement `useAuthStore.ts` with Zustand & LocalStorage persistence**
   Manage `token`, `user`, `isAuthenticated`, `login(emailOrUsername, password)`, `register(...)`, `registerSeller(...)`, `logout()`, and role helpers (`isSeller()`, `isAdmin()`).
 
-- [ ] **Step 4: Implement `useCartStore.ts`, `useAddressStore.ts`, and `useVoucherStore.ts`**
+- [x] **Step 4: Implement `useCartStore.ts`, `useAddressStore.ts`, and `useVoucherStore.ts`**
   - `useCartStore`: Fetch cart from `/api/v1/buyer/cart`, optimistic `addToCart`, `updateQuantity` (supporting fractional steps), `removeFromCart`, `clearCart`.
   - `useAddressStore`: Fetch addresses from `/api/v1/buyer/addresses`, `addAddress`, `setDefaultAddress`, `deleteAddress`.
   - `useVoucherStore`: Fetch platform/shop vouchers, `validateVoucher(code, orderAmount, shopId)`.
 
-- [ ] **Step 5: Implement `Header.tsx` & `Footer.tsx`**
+- [x] **Step 5: Implement `Header.tsx` & `Footer.tsx`**
   Shopee orange header (`#EE4D2D`) with search input, category quick links, shopping cart icon with live item count badge, authentication dropdown (Login/Register or User name + Logout + "Kênh Người Bán" / "Quản Trị Sàn" shortcuts).
   Footer with store info, support hotline, and marketplace policy links.
 
-- [ ] **Step 6: Implement Layouts (`MarketLayout.tsx`, `SellerLayout.tsx`, `AdminLayout.tsx`)**
+- [x] **Step 6: Implement Layouts (`MarketLayout.tsx`, `SellerLayout.tsx`, `AdminLayout.tsx`)**
   - `MarketLayout`: Header + `<Outlet />` + Footer + floating AI Copilot widget.
   - `SellerLayout`: Seller sidebar (Dashboard, Quản lý sản phẩm, Đơn hàng, Voucher, Đánh giá), topbar, and main content.
   - `AdminLayout`: Admin sidebar (Tổng quan sàn, Duyệt gian hàng, Quản lý voucher), topbar, and main content.
 
-- [ ] **Step 7: Implement Auth Pages (`LoginPage.tsx`, `RegisterPage.tsx`, `RegisterSellerPage.tsx`)**
+- [x] **Step 7: Implement Auth Pages (`LoginPage.tsx`, `RegisterPage.tsx`, `RegisterSellerPage.tsx`)**
   Clean login/register forms with validation, error messages, and seamless redirect to intended pages.
 
-- [ ] **Step 8: Configure React Router in `frontend/src/App.tsx`**
+- [x] **Step 8: Configure React Router in `frontend/src/App.tsx`**
   Setup `BrowserRouter` with routes: `/`, `/login`, `/register`, `/register-seller`, `/products/:id`, `/categories/:id`, `/cart`, `/checkout`, `/orders/success`, `/orders/my`, `/seller/*`, `/admin/*`.
 
-- [ ] **Step 9: Verify build & TypeScript compilation**
-  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors.
+- [x] **Step 9: Verify build & TypeScript compilation**
+  Run: `cd frontend && npm run build`. Expected: BUILD SUCCESS with 0 errors (Verified in 36.43s).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
   `git add frontend/ && git commit -m "feat: implement frontend architecture, API client, Zustand stores, and navigation layouts"`
 
 ---

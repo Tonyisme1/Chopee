@@ -234,3 +234,39 @@ export interface AIChatResponse {
   recommendedProducts: ProductSummary[];
   suggestedQuestions: string[];
 }
+
+export type DiscountType = 'PERCENT' | 'FIXED_AMOUNT';
+
+export interface Voucher {
+  id: number;
+  code: string;
+  shopId?: number;
+  shopName?: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  usedCount?: number;
+  startDate?: string;
+  endDate?: string;
+  isValid?: boolean;
+}
+
+export interface ValidateVoucherResponse {
+  code: string;
+  isValid: boolean;
+  message?: string;
+  discountAmount: number;
+  finalAmount: number;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
