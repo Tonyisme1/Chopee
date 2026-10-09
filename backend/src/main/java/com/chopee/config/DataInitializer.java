@@ -596,8 +596,9 @@ public class DataInitializer implements CommandLineRunner {
         // Thêm biến thể nếu là hàng tính ký hoặc đồ điện tử
         List<ProductVariant> variants = new ArrayList<>();
         if ("kg".equalsIgnoreCase(unit)) {
-            variants.add(ProductVariant.builder().product(product).variantName("Túi 500g").price(sellingPrice.multiply(new BigDecimal("0.5"))).stockQuantity(stockQuantity).build());
-            variants.add(ProductVariant.builder().product(product).variantName("Túi 1kg").price(sellingPrice).stockQuantity(stockQuantity).build());
+            variants.add(ProductVariant.builder().product(product).variantName("Túi 500g (0.5kg)").price(sellingPrice.multiply(new BigDecimal("0.5"))).stockQuantity(stockQuantity).build());
+            variants.add(ProductVariant.builder().product(product).variantName("Túi 1.0 kg (1 ký)").price(sellingPrice).stockQuantity(stockQuantity).build());
+            variants.add(ProductVariant.builder().product(product).variantName("Túi 2.0 kg").price(sellingPrice.multiply(new BigDecimal("2.0"))).stockQuantity(stockQuantity).build());
         }
         product.setVariants(variants);
 

@@ -34,7 +34,7 @@ export const SellerProductsPage: React.FC = () => {
   const [originalPrice, setOriginalPrice] = useState<number>(60000);
   const [stockQuantity, setStockQuantity] = useState<number>(100);
   const [unit, setUnit] = useState('kg');
-  const [stepQuantity, setStepQuantity] = useState<number>(0.5);
+  const [stepQuantity, setStepQuantity] = useState<number>(1);
   const [minOrderQuantity, setMinOrderQuantity] = useState<number>(1);
   const [storageType, setStorageType] = useState<'NORMAL' | 'FRESH' | 'FROZEN_CHILLED'>('FRESH');
   const [origin, setOrigin] = useState('Đà Lạt, Lâm Đồng');
@@ -79,7 +79,7 @@ export const SellerProductsPage: React.FC = () => {
     setOriginalPrice(60000);
     setStockQuantity(100);
     setUnit('kg');
-    setStepQuantity(0.5);
+    setStepQuantity(1);
     setMinOrderQuantity(1);
     setStorageType('FRESH');
     setOrigin('Đà Lạt, Lâm Đồng');
@@ -418,31 +418,26 @@ export const SellerProductsPage: React.FC = () => {
                       onChange={(e) => {
                         const val = e.target.value;
                         setUnit(val);
-                        if (!val.toLowerCase().includes('kg') && !val.toLowerCase().includes('g')) {
-                          setStepQuantity(1);
-                          setMinOrderQuantity(1);
-                        }
+                        setStepQuantity(1);
+                        setMinOrderQuantity(1);
                       }}
-                      placeholder="kg, thùng, chiếc..."
+                      placeholder="kg, bịch, chai, bó, thùng, chiếc..."
                       className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none text-xs"
                       required
                     />
                     <input
                       type="number"
-                      step={unit.toLowerCase().includes('kg') ? '0.1' : '1'}
-                      min={unit.toLowerCase().includes('kg') ? '0.1' : '1'}
+                      step="1"
+                      min="1"
                       value={stepQuantity}
-                      disabled={!unit.toLowerCase().includes('kg') && !unit.toLowerCase().includes('g')}
-                      onChange={(e) => setStepQuantity(Number(e.target.value))}
-                      placeholder="Bước nhảy"
-                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none text-xs disabled:opacity-60 disabled:bg-gray-100"
+                      onChange={(e) => setStepQuantity(Math.max(1, Math.round(Number(e.target.value))))}
+                      placeholder="Bước nhảy (mặc định 1)"
+                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none text-xs"
                       required
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    {unit.toLowerCase().includes('kg') || unit.toLowerCase().includes('g')
-                      ? '💡 Đơn vị cân (kg): Người mua có thể chọn đóng gói 0.5kg (500g), 1kg, 2kg hoặc bước cân lẻ.'
-                      : '💡 Đơn vị đếm nguyên: Khách hàng mua số lượng nguyên chiếc (1, 2, 3...), bước nhảy cố định là 1.'}
+                    💡 Quy ước sàn Chopee: Số lượng đặt mua luôn là số nguyên (1, 2, 3...). Các sản phẩm dạng kg, lít, bó được đóng gói theo từng quy cách/phân loại để khách chọn.
                   </p>
                 </div>
               </div>

@@ -235,12 +235,15 @@ export const CartPage: React.FC = () => {
                                 <Snowflake className="w-3 h-3" /> Đông mát
                               </span>
                             )}
-                            <span className="text-[10px] text-gray-400">
-                              Đơn vị: {item.unit}{' '}
-                              {item.unit?.toLowerCase().includes('kg') || item.unit?.toLowerCase().includes('g')
-                                ? `(bước cân: ${item.stepQuantity || 0.5} kg)`
-                                : '(số lượng nguyên)'}
-                            </span>
+                            {item.variantName ? (
+                              <span className="text-[11px] font-semibold bg-orange-50 text-chopee-orange px-2 py-0.5 rounded border border-orange-200">
+                                Quy cách: {item.variantName}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400">
+                                Đơn vị: {item.unit}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -250,50 +253,36 @@ export const CartPage: React.FC = () => {
                         {formatCurrency(item.sellingPrice)}
                       </div>
 
-                      {/* Quantity Modifier */}
+                      {/* Quantity Modifier (Strictly Integer) */}
                       <div className="col-span-2 flex items-center justify-center">
-                        {(() => {
-                          const isWeight =
-                            item.unit?.toLowerCase().trim() === 'kg' ||
-                            item.unit?.toLowerCase().trim() === 'kí' ||
-                            item.unit?.toLowerCase().trim() === 'ký' ||
-                            item.unit?.toLowerCase().trim() === 'g';
-                          const itemStep = isWeight ? (item.stepQuantity || 0.5) : 1;
-
-                          return (
-                            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextQty = isWeight
-                                    ? Math.max(itemStep, Math.round((item.quantity - itemStep) * 100) / 100)
-                                    : Math.max(1, Math.round(item.quantity - 1));
-                                  updateQuantity(item.id, nextQty);
-                                }}
-                                className="p-1.5 text-gray-500 hover:bg-gray-100"
-                                title="Giảm"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="px-2 text-xs font-bold text-gray-800 min-w-[50px] text-center">
-                                {isWeight ? `${item.quantity} kg` : `${Math.round(item.quantity)} ${item.unit}`}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextQty = isWeight
-                                    ? Math.round((item.quantity + itemStep) * 100) / 100
-                                    : Math.round(item.quantity + 1);
-                                  updateQuantity(item.id, nextQty);
-                                }}
-                                className="p-1.5 text-gray-500 hover:bg-gray-100"
-                                title="Tăng"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          );
-                        })()}
+                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextQty = Math.max(1, Math.round(item.quantity) - 1);
+                              updateQuantity(item.id, nextQty);
+                            }}
+                            disabled={item.quantity <= 1}
+                            className="p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+                            title="Giảm 1"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="px-2 text-xs font-bold text-gray-800 min-w-[50px] text-center">
+                            {Math.round(item.quantity)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextQty = Math.round(item.quantity) + 1;
+                              updateQuantity(item.id, nextQty);
+                            }}
+                            className="p-1.5 text-gray-500 hover:bg-gray-100"
+                            title="Tăng 1"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Subtotal & Delete Action */}

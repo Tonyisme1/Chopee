@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Star,
@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Apple,
   Snowflake,
+  Package,
 } from 'lucide-react';
 import { ProductDetail } from '../types';
 import { catalogApi } from '../services/api';
@@ -30,6 +31,7 @@ export const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -44,7 +46,11 @@ export const ProductDetailPage: React.FC = () => {
           const p = res.data;
           setProduct(p);
           setSelectedImage(p.thumbnailUrl || '');
-          setQuantity(p.minOrderQuantity || 1);
+          setQuantity(1);
+          if (p.variants && p.variants.length > 0) {
+            setSelectedVariantId(p.variants[0].id);
+            setSelectedOptionIndex(0);
+          }
         }
       })
       .catch((err) => {
@@ -74,49 +80,79 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const isWeightUnit =
-    product.unit?.toLowerCase().trim() === 'kg' ||
-    product.unit?.toLowerCase().trim() === 'kí' ||
-    product.unit?.toLowerCase().trim() === 'ký' ||
-    product.unit?.toLowerCase().trim() === 'g' ||
-    product.unit?.toLowerCase().trim() === 'gram';
+  interface PackagingOption {
+    id?: number;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    packageType: string;
+  }
 
-  const step = isWeightUnit ? (product.stepQuantity || 0.5) : 1;
-  const minQty = isWeightUnit
-    ? (product.minOrderQuantity || 0.5)
-    : Math.max(1, Math.round(product.minOrderQuantity || 1));
+  const packagingOptions: PackagingOption[] = useMemo(() => {
+    if (!product) return [];
 
-  const weightPresets = [
-    { label: '0.5 kg (500g)', value: 0.5 },
-    { label: '1.0 kg (1 ký)', value: 1.0 },
-    { label: '1.5 kg', value: 1.5 },
-    { label: '2.0 kg (Túi 2kg)', value: 2.0 },
-    { label: '3.0 kg', value: 3.0 },
-    { label: '5.0 kg (Thùng 5kg)', value: 5.0 },
-  ];
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.map((v) => {
+        const price = v.price || product.sellingPrice;
+        const ratio = product.sellingPrice > 0 ? price / product.sellingPrice : 1;
+        const origPrice = product.originalPrice ? Math.round(product.originalPrice * ratio) : undefined;
 
-  const countPresets = [
-    { label: `1 ${product.unit}`, value: 1 },
-    { label: `2 ${product.unit}`, value: 2 },
-    { label: `3 ${product.unit}`, value: 3 },
-    { label: `5 ${product.unit}`, value: 5 },
-    { label: `10 ${product.unit}`, value: 10 },
-  ];
+        let pkgType = 'gói';
+        const nameLower = v.variantName.toLowerCase();
+        if (nameLower.includes('túi') || nameLower.includes('bịch')) pkgType = 'túi';
+        else if (nameLower.includes('chai')) pkgType = 'chai';
+        else if (nameLower.includes('can')) pkgType = 'can';
+        else if (nameLower.includes('hộp')) pkgType = 'hộp';
+        else if (nameLower.includes('thùng')) pkgType = 'thùng';
+        else if (nameLower.includes('lốc')) pkgType = 'lốc';
+        else if (nameLower.includes('bó')) pkgType = 'bó';
+        else if (nameLower.includes('khay') || nameLower.includes('vỉ')) pkgType = 'khay';
+        else if (product.unit) pkgType = product.unit;
 
-  const handleIncrease = () => {
-    if (isWeightUnit) {
-      setQuantity((prev) => Math.round((prev + step) * 100) / 100);
+        return {
+          id: v.id,
+          name: v.variantName,
+          price,
+          originalPrice: origPrice,
+          packageType: pkgType,
+        };
+      });
+    }
+
+    return [
+      {
+        name: `1 ${product.unit}`,
+        price: product.sellingPrice,
+        originalPrice: product.originalPrice,
+        packageType: product.unit,
+      },
+    ];
+  }, [product]);
+
+  const activeOption: PackagingOption =
+    packagingOptions[selectedOptionIndex] || packagingOptions[0] || {
+      name: product?.unit ? `1 ${product.unit}` : 'Sản phẩm',
+      price: product?.sellingPrice || 0,
+      originalPrice: product?.originalPrice,
+      packageType: product?.unit || 'món',
+    };
+
+  const handleSelectOption = (idx: number) => {
+    setSelectedOptionIndex(idx);
+    const opt = packagingOptions[idx];
+    if (opt && opt.id) {
+      setSelectedVariantId(opt.id);
     } else {
-      setQuantity((prev) => Math.round(prev + 1));
+      setSelectedVariantId(undefined);
     }
   };
 
+  const handleIncrease = () => {
+    setQuantity((prev) => Math.max(1, Math.round(prev)) + 1);
+  };
+
   const handleDecrease = () => {
-    if (isWeightUnit) {
-      setQuantity((prev) => Math.max(minQty, Math.round((prev - step) * 100) / 100));
-    } else {
-      setQuantity((prev) => Math.max(minQty, Math.round(prev - 1)));
-    }
+    setQuantity((prev) => Math.max(1, Math.round(prev) - 1));
   };
 
   const handleAddToCart = async () => {
@@ -128,8 +164,9 @@ export const ProductDetailPage: React.FC = () => {
     setActionError(null);
 
     try {
-      await addToCart(product.id, quantity, selectedVariantId);
-      setActionSuccess(`Đã thêm ${quantity} ${product.unit} vào giỏ hàng!`);
+      const variantIdToUse = activeOption.id || selectedVariantId;
+      await addToCart(product.id, Math.round(quantity), variantIdToUse);
+      setActionSuccess(`Đã thêm ${Math.round(quantity)} ${activeOption.name} vào giỏ hàng!`);
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
       setActionError(err.message || 'Không thể thêm vào giỏ hàng');
@@ -142,7 +179,8 @@ export const ProductDetailPage: React.FC = () => {
       return;
     }
     try {
-      await addToCart(product.id, quantity, selectedVariantId);
+      const variantIdToUse = activeOption.id || selectedVariantId;
+      await addToCart(product.id, Math.round(quantity), variantIdToUse);
       navigate('/cart');
     } catch (err: any) {
       setActionError(err.message || 'Không thể tiến hành đặt mua');
@@ -253,14 +291,14 @@ export const ProductDetailPage: React.FC = () => {
             {/* Price Box */}
             <div className="my-5 p-4 bg-orange-50/60 rounded-2xl flex items-baseline gap-3">
               <span className="text-3xl font-black text-chopee-orange">
-                {formatCurrency(product.sellingPrice)}
+                {formatCurrency(activeOption.price)}
               </span>
-              {product.originalPrice && product.originalPrice > product.sellingPrice && (
+              {activeOption.originalPrice && activeOption.originalPrice > activeOption.price && (
                 <span className="text-sm text-gray-400 line-through">
-                  {formatCurrency(product.originalPrice)}
+                  {formatCurrency(activeOption.originalPrice)}
                 </span>
               )}
-              <span className="text-xs text-gray-500 font-semibold">/ {product.unit}</span>
+              <span className="text-xs text-gray-500 font-semibold">/ {activeOption.name}</span>
             </div>
 
             {/* Shipping & Delivery Guarantee */}
@@ -279,102 +317,85 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Variants Selector if available */}
-            {product.variants && product.variants.length > 0 && (
-              <div className="flex items-center gap-3 mb-5">
-                <span className="text-xs font-semibold text-gray-700">Phân loại:</span>
-                <div className="flex flex-wrap gap-2">
-                  {product.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(v.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                        selectedVariantId === v.id
-                          ? 'bg-orange-50 border-chopee-orange text-chopee-orange font-bold'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {v.variantName}
-                    </button>
-                  ))}
+            {/* Packaging / Variants Specifications */}
+            {packagingOptions.length > 1 && (
+              <div className="mb-5 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+                  <Package className="w-4 h-4 text-chopee-orange" />
+                  <span>Quy cách đóng gói & Phân loại:</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {packagingOptions.map((opt, idx) => {
+                    const isSelected = selectedOptionIndex === idx;
+                    return (
+                      <button
+                        key={opt.id || opt.name}
+                        type="button"
+                        onClick={() => handleSelectOption(idx)}
+                        className={`p-3 rounded-xl text-left border transition-all relative ${
+                          isSelected
+                            ? 'bg-orange-50/80 border-chopee-orange text-chopee-orange ring-1 ring-chopee-orange shadow-sm font-semibold'
+                            : 'border-gray-200 bg-gray-50/50 hover:bg-white hover:border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        <div className="text-xs font-bold truncate">{opt.name}</div>
+                        <div className="text-xs font-extrabold mt-1 text-chopee-orange">
+                          {formatCurrency(opt.price)}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-chopee-orange" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Weight / Packaging Presets for KG products */}
-            {isWeightUnit && (
-              <div className="mb-5 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                  <Apple className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Chọn quy cách đóng gói & Khối lượng (kg):</span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {weightPresets.map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => setQuantity(preset.value)}
-                      className={`px-2.5 py-2 rounded-xl text-xs font-bold border transition-all text-center ${
-                        quantity === preset.value
-                          ? 'bg-orange-50 border-chopee-orange text-chopee-orange shadow-sm scale-102 ring-1 ring-chopee-orange'
-                          : 'border-gray-200 bg-gray-50/60 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Count Presets for discrete unit products */}
-            {!isWeightUnit && countPresets.length > 0 && (
-              <div className="mb-5 space-y-2">
-                <span className="block text-xs font-semibold text-gray-700">
-                  Chọn số lượng nhanh ({product.unit}):
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {countPresets.map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => setQuantity(preset.value)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                        quantity === preset.value
-                          ? 'bg-orange-50 border-chopee-orange text-chopee-orange shadow-sm ring-1 ring-chopee-orange'
-                          : 'border-gray-200 bg-gray-50/60 text-gray-700 hover:border-gray-300 hover:bg-white'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quantity Selector Stepper */}
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <span className="text-xs font-semibold text-gray-700">
-                {isWeightUnit ? 'Cân ký tùy chỉnh:' : 'Số lượng đặt mua:'}
+            {/* Quick Count Presets */}
+            <div className="mb-5 space-y-2">
+              <span className="block text-xs font-semibold text-gray-700">
+                Chọn nhanh số lượng ({activeOption.packageType}):
               </span>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 5, 10].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setQuantity(num)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      quantity === num
+                        ? 'bg-orange-50 border-chopee-orange text-chopee-orange shadow-sm ring-1 ring-chopee-orange'
+                        : 'border-gray-200 bg-gray-50/60 text-gray-700 hover:border-gray-300 hover:bg-white'
+                    }`}
+                  >
+                    {num} {activeOption.packageType}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quantity Selector Stepper (Strictly Integer) */}
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <span className="text-xs font-semibold text-gray-700">Số lượng đặt mua:</span>
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                 <button
                   type="button"
                   onClick={handleDecrease}
-                  className="px-3.5 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                  title="Giảm số lượng"
+                  disabled={quantity <= 1}
+                  className="px-3.5 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                  title="Giảm 1"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <span className="px-4 py-1 text-sm font-bold text-gray-900 min-w-[70px] text-center">
-                  {isWeightUnit ? `${quantity} kg` : `${quantity} ${product.unit}`}
+                  {quantity} {activeOption.packageType}
                 </span>
                 <button
                   type="button"
                   onClick={handleIncrease}
                   className="px-3.5 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
-                  title="Tăng số lượng"
+                  title="Tăng 1"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -384,13 +405,11 @@ export const ProductDetailPage: React.FC = () => {
               <div className="text-xs text-gray-500">
                 <span>Tạm tính: </span>
                 <strong className="text-sm font-black text-chopee-orange">
-                  {formatCurrency(Math.round(product.sellingPrice * quantity))}
+                  {formatCurrency(activeOption.price * quantity)}
                 </strong>
-                {isWeightUnit && (
-                  <span className="text-[11px] text-gray-400 ml-1.5">
-                    ({quantity} kg × {formatCurrency(product.sellingPrice)}/kg)
-                  </span>
-                )}
+                <span className="text-[11px] text-gray-400 ml-1.5">
+                  ({quantity} × {activeOption.name})
+                </span>
               </div>
             </div>
 

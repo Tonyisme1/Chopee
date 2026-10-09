@@ -594,6 +594,39 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Hệ thống API hoàn chỉnh, bảo mật phân quyền Role rõ ràng, tích hợp Swagger OpenAPI UI chi tiết.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/**`, `backend/src/test/java/com/chopee/**`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261009-001] Chuẩn hóa Số Lượng Đặt Mua Số Nguyên & Mô hình Quy Cách Đóng Gói (Packaging Specifications)
+
+* **Mã thay đổi:** `CHG-20261009-001`
+* **Ngày thực hiện:** 2026-10-09
+* **Người thực hiện:** Antigravity AI Assistant & Engineering Team
+* **Loại thay đổi:** `REFACTORED` / `CHANGED`
+* **Phân hệ ảnh hưởng:** `FRONTEND_UI`, `BACKEND_API`, `DATABASE`
+* **Mô tả thay đổi:** Chuẩn hóa toàn bộ quy ước mua hàng trên sàn Chopee: Số lượng đặt mua luôn luôn là số nguyên (`1, 2, 3, 4...`). Các mặt hàng theo trọng lượng (`kg`), thể tích (`lít`), hay nông sản (`bó`, `khay`) được tổ chức thành các Quy cách đóng gói cụ thể (Túi 500g, Túi 1kg, Túi 2kg, Thùng 5kg; Chai 500ml, Can 2L, Can 5L; Bó tiêu chuẩn; Combo...) để khách hàng chọn quy cách và mua theo số lượng nguyên món.
+* **Lý do thay đổi:**
+  - Đáp ứng yêu cầu chuẩn mực từ Product Owner: Loại bỏ việc người dùng phải nhập hoặc bấm chọn số lượng lẻ thập phân (`0.5kg`, `1.5kg`).
+  - Triệt tiêu hoàn toàn rủi ro sai số dấu phẩy động (IEEE-754 floating point arithmetic) khi tính toán tổng tiền, chiết khấu voucher sàn và phân tách đơn hàng đa người bán.
+  - Phù hợp với thực tế vận hành thương mại điện tử thực phẩm: Thực phẩm tươi sống được đóng gói sẵn theo bịch/túi/hộp cố định để dán tem mã vạch và giao hỏa tốc.
+* **Chi tiết Trước & Sau:**
+  - *Trước:* Giao diện chi tiết sản phẩm và giỏ hàng có bộ cân bước nhảy `0.5kg`, khách chọn các số lẻ thập phân; giỏ hàng nhảy bước `0.5`; kênh người bán cấu hình `stepQuantity = 0.5`.
+  - *Sau:*
+    1. **Trang chi tiết sản phẩm (`ProductDetailPage.tsx`):**
+       - Lưới chọn "Quy cách đóng gói & Phân loại" trực quan, liên kết trực tiếp với các biến thể thực tế trong CSDL (`Túi 500g (0.5kg)`, `Túi 1.0 kg (1 ký)`, `Túi 2.0 kg`, v.v.).
+       - Khung giá cập nhật tức thì theo quy cách được chọn (`/ Túi 500g`, `/ Túi 1.0 kg`, `/ Chai 1L`...).
+       - Bộ tăng giảm số lượng (`handleIncrease`, `handleDecrease`) luôn là số nguyên thuần túy (+1, -1, tối thiểu 1).
+       - Nút chọn số lượng nhanh: 1, 2, 3, 5, 10 bịch/gói.
+       - Tạm tính hiển thị chi tiết: `Tạm tính: X đ (Y × Tên quy cách)`.
+    2. **Trang giỏ hàng (`CartPage.tsx`):**
+       - Hiển thị nổi bật nhãn `Quy cách: [Tên biến thể]` (VD: `Quy cách: Túi 500g (0.5kg)`).
+       - Nút tăng giảm số lượng strictly integer (+1, -1).
+    3. **Kênh người bán (`SellerProductsPage.tsx`):**
+       - Mặc định `stepQuantity = 1` và `minOrderQuantity = 1` cho mọi đơn vị tính.
+       - Hướng dẫn rõ quy ước sàn cho người bán khi cấu hình đơn vị sản phẩm.
+    4. **Dữ liệu mẫu (`DataInitializer.java`):**
+       - Bổ sung biến thể đóng gói `Túi 2.0 kg` bên cạnh `Túi 500g` và `Túi 1.0 kg` cho toàn bộ thực phẩm tươi sống tính ký.
+* **Phạm vi tác động:** `frontend/src/pages/ProductDetailPage.tsx`, `frontend/src/pages/CartPage.tsx`, `frontend/src/pages/seller/SellerProductsPage.tsx`, `backend/src/main/java/com/chopee/config/DataInitializer.java`, `docs/specs/07_changelog.md`.
+
 
 
 
