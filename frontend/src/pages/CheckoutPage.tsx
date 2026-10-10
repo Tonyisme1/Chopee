@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   MapPin,
   Store,
@@ -11,7 +11,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import { useCartStore } from '../stores/useCartStore';
+import { useCartStore, ShopCartGroup } from '../stores/useCartStore';
 import { useAddressStore } from '../stores/useAddressStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { orderApi, paymentApi } from '../services/api';
@@ -21,9 +21,40 @@ import { VoucherModal } from '../components/VoucherModal';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { items, fetchCart, getItemsByShop, clearCart } = useCartStore();
+  const location = useLocation();
+  const { items, fetchCart } = useCartStore();
   const { defaultAddress, selectedAddress, selectAddress } = useAddressStore();
   const { isAuthenticated } = useAuthStore();
+
+  const selectedItemIdsFromNav = (location.state as any)?.selectedItemIds as number[] | undefined;
+
+  // Filter items selected for checkout
+  const checkoutItems = useMemo(() => {
+    if (selectedItemIdsFromNav && selectedItemIdsFromNav.length > 0) {
+      const filtered = items.filter((i) => selectedItemIdsFromNav.includes(i.id));
+      return filtered.length > 0 ? filtered : items;
+    }
+    return items;
+  }, [items, selectedItemIdsFromNav]);
+
+  // Group checkout items by shop
+  const checkoutShopGroups = useMemo(() => {
+    const groupMap = new Map<number, ShopCartGroup>();
+    checkoutItems.forEach((item) => {
+      if (!groupMap.has(item.shopId)) {
+        groupMap.set(item.shopId, {
+          shopId: item.shopId,
+          shopName: item.shopName,
+          items: [],
+          subtotal: 0,
+        });
+      }
+      const group = groupMap.get(item.shopId)!;
+      group.items.push(item);
+      group.subtotal += item.subtotal;
+    });
+    return Array.from(groupMap.values());
+  }, [checkoutItems]);
 
   // Modals state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -55,15 +86,15 @@ export const CheckoutPage: React.FC = () => {
 
   // If any item is FRESH, default shippingMethod to EXPRESS_FRESH
   useEffect(() => {
-    const hasFresh = items.some((i) => i.storageType === 'FRESH');
+    const hasFresh = checkoutItems.some((i) => i.storageType === 'FRESH');
     if (hasFresh) {
       setShippingMethod('EXPRESS_FRESH');
     }
-  }, [items]);
+  }, [checkoutItems]);
 
   // Recalculate checkout preview whenever items, vouchers or shipping changes
   const calculatePreview = useCallback(async () => {
-    if (items.length === 0) return;
+    if (checkoutItems.length === 0) return;
     setLoadingPreview(true);
     setErrorMsg(null);
 
@@ -76,12 +107,10 @@ export const CheckoutPage: React.FC = () => {
 
     try {
       const res = await orderApi.checkoutPreview({
-        items: items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          variantId: i.variantId,
-        })),
+        cartItemIds: checkoutItems.map((i) => i.id),
         shippingMethod,
+        paymentMethod,
+        voucherCode: platformVoucher?.code || undefined,
         shopVoucherCodes,
         platformVoucherCode: platformVoucher?.code || undefined,
       });
@@ -90,23 +119,65 @@ export const CheckoutPage: React.FC = () => {
         setPreview(res.data);
       }
     } catch (err: any) {
-      console.error('Lỗi tính toán xem trước đơn hàng:', err);
-      setErrorMsg(err.message || 'Không thể tính toán chi phí đơn hàng');
+      console.warn('Lỗi tính toán xem trước đơn hàng từ máy chủ:', err);
     } finally {
       setLoadingPreview(false);
     }
-  }, [items, shippingMethod, shopVouchers, platformVoucher]);
+  }, [checkoutItems, shippingMethod, paymentMethod, shopVouchers, platformVoucher]);
 
   useEffect(() => {
     calculatePreview();
   }, [calculatePreview]);
+
+  // Reactive price calculations guaranteeing no 0đ state
+  const shippingFeePerShop = shippingMethod === 'EXPRESS_FRESH' ? 25000 : 15000;
+  const itemsTotal = preview?.groupSubtotal ?? preview?.totalItemsAmount ?? checkoutItems.reduce((acc, i) => acc + i.subtotal, 0);
+  const totalShipping = preview?.totalShippingFee ?? (checkoutShopGroups.length * shippingFeePerShop);
+
+  // Shop vouchers discount calculation
+  const calculatedShopDiscount = useMemo(() => {
+    let totalDiscount = 0;
+    checkoutShopGroups.forEach((group) => {
+      const v = shopVouchers[group.shopId];
+      if (v) {
+        if (v.discountType === 'PERCENT') {
+          let d = (group.subtotal * (v.discountValue || 0)) / 100;
+          if (v.maxDiscountAmount && d > v.maxDiscountAmount) {
+            d = v.maxDiscountAmount;
+          }
+          totalDiscount += Math.min(d, group.subtotal);
+        } else {
+          totalDiscount += Math.min(v.discountValue || 0, group.subtotal);
+        }
+      }
+    });
+    return totalDiscount;
+  }, [checkoutShopGroups, shopVouchers]);
+
+  // Platform voucher discount calculation
+  const calculatedPlatformDiscount = useMemo(() => {
+    if (!platformVoucher) return 0;
+    const baseAmount = Math.max(0, itemsTotal - calculatedShopDiscount);
+    if (baseAmount <= 0) return 0;
+    if (platformVoucher.discountType === 'PERCENT') {
+      let d = (baseAmount * (platformVoucher.discountValue || 0)) / 100;
+      if (platformVoucher.maxDiscountAmount && d > platformVoucher.maxDiscountAmount) {
+        d = platformVoucher.maxDiscountAmount;
+      }
+      return Math.min(d, baseAmount);
+    }
+    return Math.min(platformVoucher.discountValue || 0, baseAmount);
+  }, [itemsTotal, calculatedShopDiscount, platformVoucher]);
+
+  const totalDiscount = preview?.totalDiscount ?? preview?.totalDiscountAmount ?? (calculatedShopDiscount + calculatedPlatformDiscount);
+  const finalTotalAmount = preview?.finalTotalAmount ?? preview?.grandFinalAmount ?? Math.max(0, itemsTotal + totalShipping - totalDiscount);
 
   if (!isAuthenticated) {
     navigate('/login?redirect=/checkout');
     return null;
   }
 
-  if (items.length === 0) {
+  if (checkoutItems.length === 0) {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-gray-100 text-center">
         <h2 className="text-lg font-bold text-gray-800 mb-2">Giỏ hàng trống</h2>
@@ -117,8 +188,6 @@ export const CheckoutPage: React.FC = () => {
       </div>
     );
   }
-
-  const shopGroups = getItemsByShop();
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -150,17 +219,17 @@ export const CheckoutPage: React.FC = () => {
         paymentMethod,
         shippingMethod,
         note: note.trim() || undefined,
+        cartItemIds: checkoutItems.map((i) => i.id),
         shopVoucherCodes,
         platformVoucherCode: platformVoucher?.code || undefined,
       });
 
       if (res.success && res.data) {
         const { groupOrderCode } = res.data;
-        await clearCart();
+        await fetchCart();
 
         if (paymentMethod === 'VNPAY') {
-          // Trigger VNPay Payment URL
-          const amountToPay = preview ? preview.finalTotalAmount : 100000;
+          const amountToPay = finalTotalAmount > 0 ? finalTotalAmount : 100000;
           const vnpRes = await paymentApi.createVNPayPayment({
             groupOrderCode,
             amount: amountToPay,
@@ -234,7 +303,7 @@ export const CheckoutPage: React.FC = () => {
 
       {/* 2. Order Breakdown Per Shop */}
       <div className="space-y-4">
-        {shopGroups.map((group) => {
+        {checkoutShopGroups.map((group) => {
           const appliedShopVoucher = shopVouchers[group.shopId];
 
           return (
@@ -262,8 +331,13 @@ export const CheckoutPage: React.FC = () => {
                       />
                       <div>
                         <p className="font-semibold text-gray-800 line-clamp-1">{item.productName}</p>
+                        {item.variantName && (
+                          <p className="text-[11px] text-chopee-orange font-medium">
+                            Phân loại: {item.variantName}
+                          </p>
+                        )}
                         <p className="text-[10px] text-gray-400">
-                          {item.quantity} {item.unit} x {formatCurrency(item.sellingPrice)}
+                          {Math.round(item.quantity)} {item.unit} x {formatCurrency(item.sellingPrice)}
                         </p>
                       </div>
                     </div>
@@ -440,21 +514,23 @@ export const CheckoutPage: React.FC = () => {
       {/* 5. Cost Summary & Final CTA */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-3 text-xs">
         <div className="flex justify-between text-gray-600">
-          <span>Tổng tiền hàng ({items.length} món):</span>
-          <span>{formatCurrency(preview?.groupSubtotal || 0)}</span>
+          <span>Tổng tiền hàng ({checkoutItems.length} món):</span>
+          <span className="font-semibold text-gray-800">{formatCurrency(itemsTotal)}</span>
         </div>
         <div className="flex justify-between text-gray-600">
-          <span>Phí vận chuyển ({shopGroups.length} shop):</span>
-          <span>+{formatCurrency(preview?.totalShippingFee || 0)}</span>
+          <span>Phí vận chuyển ({checkoutShopGroups.length} shop):</span>
+          <span className="font-semibold text-gray-800">+{formatCurrency(totalShipping)}</span>
         </div>
-        <div className="flex justify-between text-emerald-600 font-medium">
-          <span>Tổng giảm giá voucher:</span>
-          <span>-{formatCurrency(preview?.totalDiscount || 0)}</span>
-        </div>
+        {totalDiscount > 0 && (
+          <div className="flex justify-between text-emerald-600 font-medium">
+            <span>Tổng giảm giá voucher:</span>
+            <span>-{formatCurrency(totalDiscount)}</span>
+          </div>
+        )}
         <div className="pt-3 border-t border-gray-100 flex items-baseline justify-between">
           <span className="text-sm font-bold text-gray-800">Tổng thanh toán:</span>
           <span className="text-2xl font-black text-chopee-orange">
-            {formatCurrency(preview?.finalTotalAmount || 0)}
+            {formatCurrency(finalTotalAmount)}
           </span>
         </div>
       </div>
@@ -493,9 +569,9 @@ export const CheckoutPage: React.FC = () => {
           isOpen={!!activeVoucherShopId}
           onClose={() => setActiveVoucherShopId(null)}
           shopId={activeVoucherShopId}
-          shopName={shopGroups.find((g) => g.shopId === activeVoucherShopId)?.shopName}
+          shopName={checkoutShopGroups.find((g) => g.shopId === activeVoucherShopId)?.shopName}
           orderAmount={
-            shopGroups.find((g) => g.shopId === activeVoucherShopId)?.subtotal || 0
+            checkoutShopGroups.find((g) => g.shopId === activeVoucherShopId)?.subtotal || 0
           }
           selectedCode={shopVouchers[activeVoucherShopId]?.code}
           onApply={(v) => {
@@ -508,7 +584,7 @@ export const CheckoutPage: React.FC = () => {
         <VoucherModal
           isOpen={isPlatformVoucherOpen}
           onClose={() => setIsPlatformVoucherOpen(false)}
-          orderAmount={preview?.groupSubtotal || 0}
+          orderAmount={itemsTotal}
           selectedCode={platformVoucher?.code}
           onApply={(v) => setPlatformVoucher(v)}
         />

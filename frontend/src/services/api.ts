@@ -139,8 +139,11 @@ export const cartApi = {
 
 export const orderApi = {
   checkoutPreview: (data: {
-    items: { productId: number; quantity: number; variantId?: number }[];
+    cartItemIds?: number[];
+    items?: { productId: number; quantity: number; variantId?: number }[];
     shippingMethod?: string;
+    paymentMethod?: string;
+    voucherCode?: string;
     shopVoucherCodes?: Record<number, string>;
     platformVoucherCode?: string;
   }): Promise<ApiResponse<CheckoutPreviewResponse>> =>
@@ -153,6 +156,7 @@ export const orderApi = {
     paymentMethod: string;
     shippingMethod: string;
     note?: string;
+    cartItemIds?: number[];
     shopVoucherCodes?: Record<number, string>;
     platformVoucherCode?: string;
   }): Promise<ApiResponse<{ groupOrderCode: string; orders: Order[] }>> =>

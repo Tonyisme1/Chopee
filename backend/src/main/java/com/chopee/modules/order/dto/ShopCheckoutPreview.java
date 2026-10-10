@@ -1,5 +1,6 @@
 package com.chopee.modules.order.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +23,19 @@ public class ShopCheckoutPreview {
     private BigDecimal shopShippingFee;
     private BigDecimal shopDiscount;
     private BigDecimal shopFinalTotal;
+
+    @JsonProperty("shopSubtotal")
+    public BigDecimal getShopSubtotal() {
+        return shopItemsTotal;
+    }
+
+    @JsonProperty("shippingFee")
+    public BigDecimal getShippingFee() {
+        return shopShippingFee;
+    }
+
+    @JsonProperty("shopTotal")
+    public BigDecimal getShopTotal() {
+        return shopFinalTotal;
+    }
 }

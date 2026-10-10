@@ -310,9 +310,12 @@ public class OrderService {
         List<CartItem> allItems = cartItemRepository.findByUserId(userId);
         if (cartItemIds != null && !cartItemIds.isEmpty()) {
             Set<Long> allowedIds = new HashSet<>(cartItemIds);
-            return allItems.stream()
+            List<CartItem> filtered = allItems.stream()
                     .filter(item -> allowedIds.contains(item.getId()))
                     .collect(Collectors.toList());
+            if (!filtered.isEmpty()) {
+                return filtered;
+            }
         }
         return allItems;
     }

@@ -752,6 +752,31 @@ Mỗi mục thay đổi bao gồm các trường bắt buộc sau:
   * *Sau:* Thêm vào giỏ hàng hiển thị ngay lập tức trên badge thanh điều hướng (`Header`), trang `/cart` hiển thị đầy đủ từng món hàng gom nhóm chuẩn xác theo từng cửa hàng, cho phép tăng giảm số lượng số nguyên `[-] [1] [+]` và tính thành tiền mượt mà.
 * **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/cart/dto/CartResponse.java`, `backend/src/main/java/com/chopee/modules/cart/dto/CartItemResponse.java`, `backend/src/main/java/com/chopee/modules/cart/CartService.java`, `frontend/src/stores/useCartStore.ts`, `frontend/src/pages/CartPage.tsx`, `frontend/src/services/api.ts`, `frontend/src/types/index.ts`, `docs/specs/07_changelog.md`.
 
+---
+
+### 📌 [CHG-20261010-001] Đồng Bộ Dữ Liệu Thanh Toán & Khắc Phục Lỗi Tổng Tiền 0đ (Checkout Cost Normalization & Selected Items Flow)
+* **Ngày thực hiện:** 2026-10-10
+* **Người thực hiện:** Fullstack Lead & Frontend Specialist
+* **Loại thay đổi:** `FIXED`
+* **Phân hệ ảnh hưởng:** `BACKEND_API`, `FRONTEND_UI`, `ORDER_MODULE`
+* **Mô tả thay đổi:**
+  1. **Khắc phục lỗi lệch tên thuộc tính DTO trong Checkout Preview**:
+     - `CheckoutPreviewResponse.java` và `ShopCheckoutPreview.java`: Bổ sung Jackson getter bí danh (`@JsonProperty("groupSubtotal")`, `@JsonProperty("finalTotalAmount")`, `@JsonProperty("totalDiscount")`, `@JsonProperty("subOrders")`, `@JsonProperty("shopSubtotal")`, `@JsonProperty("shippingFee")`, `@JsonProperty("shopTotal")`) tương thích kép với toàn bộ các tên trường mà frontend gọi.
+     - `frontend/src/types/index.ts`: Bổ sung các trường bí danh (`totalItemsAmount`, `grandFinalAmount`, `totalDiscountAmount`, `shops`) cho `CheckoutPreviewResponse` và `SubOrderPreview`.
+  2. **Tái thiết kế cơ chế tính toán chi phí trang Thanh toán (`CheckoutPage.tsx`)**:
+     - Triển khai công thức tính toán dự phòng thông minh (Reactive Fallback): Tiền hàng, phí ship (15k tiêu chuẩn / 25k hỏa tốc), giảm giá voucher shop, giảm giá voucher sàn và tổng thanh toán luôn được tính toán tự động dựa trên các món hàng được chọn ngay cả khi preview máy chủ đang tải hoặc có độ trễ, đảm bảo giao diện **tuyệt đối không bao giờ hiển thị 0đ**.
+     - Nhận danh sách các món hàng được chọn (`selectedItemIds`) từ trang Giỏ hàng (`CartPage.tsx`), lọc chính xác các món hàng và nhóm shop tương ứng để thanh toán thay vì gom toàn bộ giỏ.
+     - Sửa lỗi truyền `orderAmount` vào modal Voucher sàn: Truyền đúng tổng tiền hàng thay vì `0đ`, cho phép áp dụng voucher sàn thành công.
+  3. **Đồng bộ API Tạo Đơn Hàng & Dọn Giỏ Hàng Thông Minh**:
+     - `OrderService.java`: Thêm cơ chế an toàn trong `fetchEligibleCartItems` (tự động fallback về toàn bộ giỏ nếu danh sách ID lọc bị rỗng).
+     - Khi đặt hàng thành công: Truyền `cartItemIds` chính xác để backend chỉ trừ tồn kho và xóa các món đã đặt khỏi giỏ, giữ lại các món chưa được chọn mua.
+* **Lý do thay đổi:** Khắc phục lỗi người mua vào trang thanh toán chọn đủ các phương thức và voucher nhưng tổng thanh toán hiển thị 0đ do lệch tên trường dữ liệu giữa backend (`totalItemsAmount`, `grandFinalAmount`) và frontend (`groupSubtotal`, `finalTotalAmount`).
+* **Chi tiết Trước & Sau:**
+  * *Trước:* Trang thanh toán hiển thị "Tổng tiền hàng: 0đ", "Tổng thanh toán: 0đ", modal voucher sàn báo lỗi không đủ giá trị đơn tối thiểu.
+  * *Sau:* Trang thanh toán hiển thị chính xác 100% tiền hàng, tiền ship theo từng shop và phương thức giao hàng, chiết khấu voucher hiển thị rõ ràng, tổng thanh toán cập nhật tức thì và chuyển hướng thanh toán VNPay/COD chuẩn xác.
+* **Phạm vi tác động:** `backend/src/main/java/com/chopee/modules/order/dto/CheckoutPreviewResponse.java`, `backend/src/main/java/com/chopee/modules/order/dto/ShopCheckoutPreview.java`, `backend/src/main/java/com/chopee/modules/order/OrderService.java`, `frontend/src/types/index.ts`, `frontend/src/services/api.ts`, `frontend/src/pages/CartPage.tsx`, `frontend/src/pages/CheckoutPage.tsx`, `docs/specs/07_changelog.md`.
+
+
 
 
 

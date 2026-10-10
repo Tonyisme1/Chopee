@@ -143,7 +143,7 @@ export const CartPage: React.FC = () => {
       alert('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
       return;
     }
-    navigate('/checkout');
+    navigate('/checkout', { state: { selectedItemIds: Array.from(selectedItemIds) } });
   };
 
   return (

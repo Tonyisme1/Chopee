@@ -258,19 +258,26 @@ export interface Review {
 export interface SubOrderPreview {
   shopId: number;
   shopName: string;
-  items: CartItem[];
-  shopSubtotal: number;
-  shippingFee: number;
-  shopDiscount: number;
-  shopTotal: number;
+  items: any[];
+  shopSubtotal?: number;
+  shopItemsTotal?: number;
+  shippingFee?: number;
+  shopShippingFee?: number;
+  shopDiscount?: number;
+  shopTotal?: number;
+  shopFinalTotal?: number;
 }
 
 export interface CheckoutPreviewResponse {
-  groupSubtotal: number;
+  groupSubtotal?: number;
+  totalItemsAmount?: number;
   totalShippingFee: number;
-  totalDiscount: number;
-  finalTotalAmount: number;
-  subOrders: SubOrderPreview[];
+  totalDiscount?: number;
+  totalDiscountAmount?: number;
+  finalTotalAmount?: number;
+  grandFinalAmount?: number;
+  subOrders?: SubOrderPreview[];
+  shops?: SubOrderPreview[];
 }
 
 export interface AIChatResponse {

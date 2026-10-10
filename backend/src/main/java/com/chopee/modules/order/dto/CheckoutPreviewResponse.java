@@ -2,6 +2,7 @@ package com.chopee.modules.order.dto;
 
 import com.chopee.entity.enums.PaymentMethod;
 import com.chopee.entity.enums.ShippingMethod;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +25,24 @@ public class CheckoutPreviewResponse {
     private BigDecimal totalShippingFee;
     private BigDecimal totalDiscountAmount;
     private BigDecimal grandFinalAmount;
+
+    @JsonProperty("groupSubtotal")
+    public BigDecimal getGroupSubtotal() {
+        return totalItemsAmount;
+    }
+
+    @JsonProperty("finalTotalAmount")
+    public BigDecimal getFinalTotalAmount() {
+        return grandFinalAmount;
+    }
+
+    @JsonProperty("totalDiscount")
+    public BigDecimal getTotalDiscount() {
+        return totalDiscountAmount;
+    }
+
+    @JsonProperty("subOrders")
+    public List<ShopCheckoutPreview> getSubOrders() {
+        return shops;
+    }
 }
